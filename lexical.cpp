@@ -1,4 +1,4 @@
-#include "datastructure.h"
+ï»¿#include "datastructure.h"
 using namespace std;
 
 extern ifstream  in;
@@ -16,7 +16,7 @@ extern std::string RSRVWORD[NRSRVW];
 extern char SSYMT[18];
 
 
-void getsymt(char ss){				//´Ë´¦Ê¹ÓÃ¶ş·Ö²éÕÒ»ñÈ¡µ¥¸ö×Ö·ûµÄÀàĞÍ
+void getsymt(char ss){				//æ­¤å¤„ä½¿ç”¨äºŒåˆ†æŸ¥æ‰¾è·å–å•ä¸ªå­—ç¬¦çš„ç±»å‹
 	int i, j, k;
 	i = 0;
 	j = COMMONSYMINDEX;
@@ -45,6 +45,7 @@ void getch(){
 		else if (sym == PERIOD){
 			return;
 		}
+		line += '\n';
 		lnum++;
 		ll = line.length();
 		cc = 0;
@@ -56,8 +57,8 @@ void getch(){
 void getsym(){
 	int i, j, k;
 	while (ch == ' ' || ch == '\t' || ch == '\n')
-		getch();							//Ìø¹ı¿Õ°××Ö·û
-	if (islower(ch) || isupper(ch)){		//¿ÉÄÜÊÇÒ»¸ö±êÊ¶·û»òÕß±£Áô×Ö
+		getch();							//è·³è¿‡ç©ºç™½å­—ç¬¦
+	if (islower(ch) || isupper(ch)){		//å¯èƒ½æ˜¯ä¸€ä¸ªæ ‡è¯†ç¬¦æˆ–è€…ä¿ç•™å­—
 		k = 0;
 		tokenbuf = "";
 		while (islower(ch) || isupper(ch) || isdigit(ch)){
@@ -65,7 +66,7 @@ void getsym(){
 			getch();
 		}
 		k = tokenbuf.length();
-		if (k > IDLENMAX){		//±êÊ¶·û¹ı³¤
+		if (k > IDLENMAX){		//æ ‡è¯†ç¬¦è¿‡é•¿
 			printf("The identifier is too long!");
 			in.close();
 			exit(0);
@@ -73,7 +74,7 @@ void getsym(){
 		id = tokenbuf;
 		i = RSVWBEGININDEX;
 		j = RSVWENDINDEX;
-		while (i <= j){		//¶ş·ÖËÑË÷
+		while (i <= j){		//äºŒåˆ†æœç´¢
 			k = (i + j) / 2;
 			if (id < RSRVWORD[k])
 				j = k - 1;
@@ -99,12 +100,12 @@ void getsym(){
 			getch();
 		}
 		if (isdigit(ch) && k > NUMLENMAX){
-			reportError(30);			//NUMBER Ì«´ó
+			reportError(30);			//NUMBER å¤ªå¤§
 			while (isdigit(ch)){
 				getch();
 			}
 			digits = 0;
-			//ÕâÀïÊÇÖ±½Ó°ÑºóÃæµÄÊı×ÖÉáÆú£¬È»ºóÖÃnumÎª0
+			//è¿™é‡Œæ˜¯ç›´æ¥æŠŠåé¢çš„æ•°å­—èˆå¼ƒï¼Œç„¶åç½®numä¸º0
 		}
 	}
 	else if (ch == ':'){

@@ -617,7 +617,7 @@ void callp(int &tmpindex,int pptr, set<SYMTYPE> &fsys){
 			recover(fsys);
 		}
 	}
-	else if (sym == SEMICOLON){			//过程名称后面参数列表为空
+	else if (sym == SEMICOLON||sym == ENDSYM){			//过程名称后面参数列表为空
 		if (STABLE[pptr].plink->paranum != 0){
 			reportError(17);			//函数或过程调用缺少参数
 			recover(fsys);
@@ -988,7 +988,9 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 		if (sym == LSQBSYM){
 			IDTYPE indexType;
 			getsym();
-			indexType = expression(tmpindex,opname,fsys);
+			set<SYMTYPE> fsys2(fsys);
+			fsys2.insert(RSQBSYM);
+			indexType = expression(tmpindex,opname,fsys2);
 			if(NUMVAR <= indexType && indexType <= NUMREF){
 				//
 			}
@@ -1072,7 +1074,7 @@ void condition(int &tmpindex,bool isIF,set<SYMTYPE> &fsys){
 				case LSS:	genImc(BGE, op1, opname, ""); break;
 				case LEQ:	genImc(BGT, op1, opname, ""); break;
 				case GTR:	genImc(BLE, op1, opname, ""); break;
-				case GEQ:	genImc(BGT, op1, opname, ""); break;
+				case GEQ:	genImc(BLT, op1, opname, ""); break;
 			}
 		}
 		else{
@@ -1381,7 +1383,7 @@ void Block(int btp,int offset, set<SYMTYPE> &fsys){
 				constdeclaration(fsys2);
 				while (sym == COMMA){
 					getsym();
-					constdeclaration(fsys);
+					constdeclaration(fsys2);
 				}
 				if (sym == SEMICOLON)
 					getsym();
@@ -1575,7 +1577,7 @@ int main(){
 #endif // !DEBUG
 	
 #ifdef DEBUG
-	in.open("a.txt");
+	in.open("b.txt");
 #endif // DEBUG
 
 	out.open("imcode.txt");

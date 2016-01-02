@@ -341,7 +341,7 @@ void genAsm(int cxbg,int cxend){
 					outasmtmp << "\tmov\teax,[eax]" << endl;
 				}
 			}
-			outasmtmp << "\txor\tedx,edx" << endl;		//此处将edx置0
+			outasmtmp << "\tcdq" << endl;		//此处将eax的符号位扩展到edx
 			//接下来是除法操作
 			if (STABLE[i2].type == CHARCONST || STABLE[i2].type == NUMCONST){
 				outasmtmp << "\tmov\tecx," << STABLE[i2].constv << endl;
@@ -384,9 +384,8 @@ void genAsm(int cxbg,int cxend){
 			//把eax的值(商)赋给目标变量
 			if (STABLE[idest].type == CHARREF || STABLE[idest].type == NUMREF){
 				
-				if (STABLE[idest].level == lvl){
+				if (STABLE[idest].level == lvl)
 					outasmtmp << "\tmov\tecx,[ebp-" << STABLE[idest].offset << "]" << endl;
-				}
 				else{
 					lvldist = lvl - STABLE[idest].level;		// 引用了外层变量
 					outasmtmp << "\tmov\tecx,[ebp+8]" << endl;		// SL位于EBP下方第二个单元

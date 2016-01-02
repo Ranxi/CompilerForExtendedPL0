@@ -1,22 +1,14 @@
 const
 	cst9 = +9 ,
-	cst8 = -64 ,
-	cstv = '5' ,
+	cst64 = -64,
+	cstv = '5',
 	cstV = 'V';
-	me0 = 'L';
-	me1 = 'Y';
-	me2 = 'a';
-	me3 = 't';
-	me4 = 's';
-	me5 = 'i';
-	me6 = 'n';
-	me7 = 'g';
 
 var 
 	m,n,tmp : integer;
 	ch1 : char;
-	str : array[9] of char;
-	A   : array[15] of integer;
+	stra : array[9] of char;
+	A,B : array[15] of integer;
 	x,y,i : integer;
 
 
@@ -31,21 +23,26 @@ procedure swap(var a,b : integer);
 
 function gcd(m,n:integer) : integer;
 	var q,r : integer;
+
+	function remain(m,n:integer):integer;
+		begin
+			x := m / n;
+			y := m - (x*n);
+			remain := y;
+		end;
+
 	begin
 		if n <> 0
 			then begin
-				q := m / n;
-				r := m - (q*n);
-				gcd := gcd(n,r)
+				gcd := gcd(n,remain(m,n));
 			end
 		else
 			gcd := m
 	end;
 
 begin
-	;
+	write("------YATSINGL------");
 	read(m,n);
-	;
 	if m < 0
 		then m := -m;
 	if n < 0
@@ -57,40 +54,43 @@ begin
 			n := tmp
 		end;
 	write("The gcd is ",gcd(m,n));
+	tmp := gcd(m,n);
 
 	write(" ; ");
 
-	A[0] := cstV;
+	read(ch1);
+	read(ch1);
+	write("Your char input is : ",ch1);
+	write(" ; ");
+	A[0] := ch1 ;
 	for i:=1 to 9 do
-		A[i] := A[i-1] + 1;
+		A[i] := A[i-1] + tmp;
 
 	i := 0;
-
-	str[0] := me0;
-	str[1] := me1;
-	str[2] := me2;
-	str[3] := me3;
-	str[4] := me4;
-	str[5] := me5;
-	str[6] := me6;
-	str[7] := me7;
-
-	do 	
+	do
 		begin
-			write(str[i]);
+			write(A[i]);
+			write(" < ");
 			i := i + 1
 		end
 	while i < 8 ;
 
+	write(A[i]);
 	write(" ; ");
 
 	read(x,y);
-	A[0] := x - y;
-	swap(x,y);
-	A[cst9] := x - y;
+	B[0] := x;
+	B[14] := y;
+	A[0] := B[0] - B[14];
+	swap(B[0],B[14]);
+	A[cst9] := B[0] - B[14];
 	write("x - y = ",A[0]);
 	write(" ; ");
-	write("The result after a swap :",A[cst9]);
+	write("The result after a swap : ",A[cst9]);
+	read(x,y);
+	B[1] := x / y;
+	write(B[1]);
 
-	write(".....");
+	write("  .....TEST OVER.....");
+	read(tmp);
 end.

@@ -13,8 +13,8 @@ void reportError(int errorcode){
 	string errorinfo;
 	//abc = 1;
 	switch (errorcode) {
-	case 11:
-		errorinfo = "\"" + id + "\"" + "is not defined!"; break;
+	case 0:
+		errorinfo = "程序末尾没有\".\"";break;
 	case 1:
 		errorinfo = "\"" + id + "\"" + "is defined duplicately!"; break;
 	case 2:
@@ -35,6 +35,8 @@ void reportError(int errorcode){
 		errorinfo = "数组定义或使用缺少\"[\"或\"]\""; break;
 	case 10:
 		errorinfo = "数组声明过程中定义大小必须用无符号整数"; break;
+	case 11:
+		errorinfo = "\"" + id + "\"" + "is not defined!"; break;
 	case 12:
 		errorinfo = "变量类型未指定"; break;
 	case 13:

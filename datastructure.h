@@ -9,12 +9,12 @@
 #define DEBUG
 
 #define NRSRVW		46			//保留字以及符号个数
-#define TABLENMAX	1009
-#define	NUMLENMAX	10
-#define IDLENMAX	20
+#define TABLENMAX	1009		//符号表大小上限
+#define	NUMLENMAX	10 			//数字长度上限
+#define IDLENMAX	20			//标识符长度限制
 #define ADDRMAX		2047
 #define LVMAX		3			//嵌套层次的最大限度
-#define CODEASIZE	2000
+#define CODEASIZE	2000		//四元式数量上限
 #define COMMONSYMINDEX	13
 #define RSVWBEGININDEX	21
 #define RSVWENDINDEX	40
