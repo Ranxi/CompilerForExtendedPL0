@@ -1,4 +1,4 @@
-﻿#include "datastructure.h"
+#include "datastructure.h"
 using namespace std;
 
 ifstream  in;
@@ -68,7 +68,7 @@ int Hash(string name){
 void registe(SYMITEM &item){
 	tp++;
 	if (tp >= TABLENMAX){
-		printf("符号表已满，被迫终止编译程序");
+		printf("The Symbol Table is spilled out!符号表已满，被迫终止编译程序");
 		closefiles();
 		exit(0);
 	}
@@ -83,7 +83,7 @@ void registe(SYMITEM &item){
 }
 
 //查询符号表
-int locate(string name){
+int locate(string &name){
 	int index = Hash(name);
 	int q = hashtable[index];
 	if (hashtable[index] < 0)
@@ -585,35 +585,16 @@ void callp(int &tmpindex,int pptr, set<SYMTYPE> &fsys){
 				break;
 			}
 			else if (fpt == NUMVAR && (NUMVAR <= apt && apt <= NUMREF)){
-				if(apt == NUMREF){		//something different
-					//genImc(PARAQ,opname,"","");
-					if (opname.substr(0, 2) == "t_")		//数组元素
-						TMPPARA[pNo].instrT = PARA;
-					else
-						TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
-				}
-				else{
-					TMPPARA[pNo].instrT = PARA;
-					TMPPARA[pNo].op1 = opname;
-				}
+				TMPPARA[pNo].instrT = PARA;
+				TMPPARA[pNo].op1 = opname;
 			} 
 			else if (fpt == NUMREF && (apt==NUMVAR||apt==NUMREF)){
 				TMPPARA[pNo].instrT = PARAQ;
 				TMPPARA[pNo].op1 = opname;
 			}
 			else if (fpt == CHARVAR && (CHARVAR <= apt && apt <= CHARREF)){
-				if(apt==CHARREF){		//something different
-					if (opname.substr(0, 2) == "t_")		//数组元素
-						TMPPARA[pNo].instrT = PARA;
-					else
-						TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
-				}
-				else{
-					TMPPARA[pNo].instrT = PARA;
-					TMPPARA[pNo].op1 = opname;
-				}
+				TMPPARA[pNo].instrT = PARA;
+				TMPPARA[pNo].op1 = opname;
 			}
 			else if (fpt == CHARREF && (apt==CHARVAR||apt==CHARREF)){
 				TMPPARA[pNo].instrT = PARAQ;
@@ -676,35 +657,16 @@ void callf(int &tmpindex, string &opname,int fptr, set<SYMTYPE> &fsys){
 				break;
 			}
 			else if (fpt == NUMVAR && (NUMVAR <= apt && apt <= NUMREF)){
-				if(apt == NUMREF){		//something different
-					//genImc(PARAQ,opname,"","");
-					if (opname.substr(0, 2) == "t_")		//数组元素
-						TMPPARA[pNo].instrT = PARA;
-					else
-						TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
-				}
-				else{
-					TMPPARA[pNo].instrT = PARA;
-					TMPPARA[pNo].op1 = opname;
-				}
+				TMPPARA[pNo].instrT = PARA;
+				TMPPARA[pNo].op1 = opname;
 			} 
 			else if (fpt == NUMREF && (apt==NUMVAR||apt==NUMREF)){
 				TMPPARA[pNo].instrT = PARAQ;
 				TMPPARA[pNo].op1 = opname;
 			}
 			else if (fpt == CHARVAR && (CHARVAR <= apt && apt <= CHARREF)){
-				if(apt==CHARREF){		//something different
-					if (opname.substr(0, 2) == "t_")		//数组元素
-						TMPPARA[pNo].instrT = PARA;
-					else
-						TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
-				}
-				else{
-					TMPPARA[pNo].instrT = PARA;
-					TMPPARA[pNo].op1 = opname;
-				}
+				TMPPARA[pNo].instrT = PARA;
+				TMPPARA[pNo].op1 = opname;
 			}
 			else if (fpt == CHARREF && (apt==CHARVAR||apt==CHARREF)){
 				TMPPARA[pNo].instrT = PARAQ;
@@ -861,17 +823,22 @@ IDTYPE factor(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 		}
 		else if (sym == NUMBER){	//<无符号整数>.0
 			factorType = NUMEXP;
-			tmpindex++;
-			SYMITEM atemp;
-			atemp.name = "t_" + to_string(tmpindex);
-			opname = atemp.name;
-			atemp.type = NUMCONST;
-			atemp.level = lvl;
-			atemp.constv = digits;
-			atemp.alink = NULL;
-			atemp.plink = NULL;
-			atemp.link = -1;
-			registe(atemp);
+			//tmpindex++;
+			i = locate("C_"+to_string(digits));
+			if(i >= 0)
+				opname = STABLE[i].name;
+			else{
+				SYMITEM atemp;
+				atemp.name = "C_" + to_string(digits);
+				opname = atemp.name;
+				atemp.type = NUMCONST;
+				atemp.level = lvl;
+				atemp.constv = digits;
+				atemp.alink = NULL;
+				atemp.plink = NULL;
+				atemp.link = -1;
+				registe(atemp);
+			}
 			//在符号表中注册这个常量
 			getsym();
 		}
@@ -949,21 +916,41 @@ IDTYPE expression(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 		term(tmpindex, opname, fsys2);
 		op1 = opname;
 		if (addsubop == MINUS){
-			//在符号表里注册"t_(tmpindex+1)"
-			tmpindex++;
-			SYMITEM atemp;
-			atemp.name = "t_" + to_string(tmpindex);
-			opname = atemp.name;
-			atemp.type = NUMVAR;
-			atemp.level = lvl;
-			atemp.offset = curOffset;
-			atemp.alink = NULL;
-			atemp.plink = NULL;
-			atemp.link = -1;
-			registe(atemp);
-			curOffset += 4;
-			//注册完毕
-			genImc(MNS, op1, "", opname);		//生成操作数栈栈顶取相反数指令
+			int i = locate(opname);
+			if (STABLE[i].name.substr(0, 2) == "C_"){
+				int j = locate("C_" + to_string(-STABLE[i].constv));
+				if (j >= 0)
+					opname = STABLE[j].name;
+				else{
+					SYMITEM atemp;
+					atemp.name = "C_" + to_string(-STABLE[i].constv);
+					opname = atemp.name;
+					atemp.type = NUMCONST;
+					atemp.level = lvl;
+					atemp.constv = digits;
+					atemp.alink = NULL;
+					atemp.plink = NULL;
+					atemp.link = -1;
+					registe(atemp);
+				}
+			}
+			else{
+				//在符号表里注册"t_(tmpindex+1)"
+				tmpindex++;
+				SYMITEM atemp;
+				atemp.name = "t_" + to_string(tmpindex);
+				opname = atemp.name;
+				atemp.type = NUMVAR;
+				atemp.level = lvl;
+				atemp.offset = curOffset;
+				atemp.alink = NULL;
+				atemp.plink = NULL;
+				atemp.link = -1;
+				registe(atemp);
+				curOffset += 4;
+				//注册完毕
+				genImc(MNS, op1, "", opname);		//生成操作数栈栈顶取相反数指令
+			}
 		}
 	}
 	else if (sym == NUL)
@@ -1370,17 +1357,19 @@ WHILE2:	if (sym == WHILESYM){
 				string opname;
 				IDTYPE idft = STABLE[i].type;
 				if (idft == NUMVAR || idft == NUMREF){		//循环变量只能是整型变量或整型引用
-					assignment(tmpindex,i,fsys);
+					set<SYMTYPE> fsys2(fsys);
+					fsys2.insert(DOWNTOSYM);	fsys2.insert(TOSYM);
+					assignment(tmpindex,i,fsys2);
 					if (sym == DOWNTOSYM || sym == TOSYM){
 						SYMTYPE DWNRORTO = sym;
 						getsym();
-						set<SYMTYPE> fsys2(fsys);
-						fsys2.insert(DOSYM);
-						expression(tmpindex, opname, fsys2);
-						if(opname.substr(0,2) != "t_"){		//如果表达式结果变量不是临时变量，将用临时变量存储
+						set<SYMTYPE> fsys3(fsys);
+						fsys3.insert(DOSYM);
+						expression(tmpindex, opname, fsys3);
+						//if(opname.substr(0,2) != "t_"){		//如果表达式结果变量不是临时变量，将用临时变量存储
 							tmpindex ++;
 							SYMITEM atemp;
-							atemp.name = "t_" + to_string(tmpindex);
+							atemp.name = "T_" + to_string(tmpindex);
 							atemp.type = NUMVAR;
 							atemp.level = lvl;
 							atemp.offset = curOffset;
@@ -1391,7 +1380,7 @@ WHILE2:	if (sym == WHILESYM){
 							curOffset += 4;
 							genImc(MOV,opname,"",atemp.name);
 							opname = atemp.name;
-						}
+						//}
 						string lbname = "LABEL" + to_string(labelNo);
 						genImc(ELB, "", "", lbname);			//生成LABEL
 						labelNo++;
@@ -1415,7 +1404,7 @@ WHILE2:	if (sym == WHILESYM){
 						}
 						else{
 							reportError(34);			//for 循环语句缺少 do
-							recover(fsys2);
+							recover(fsys3);
 							return;
 						}
 					}
@@ -1481,8 +1470,10 @@ void Block(int btp,int offset, set<SYMTYPE> &fsys){
 					getsym();
 					constdeclaration(fsys2);
 				}
-				if (sym == SEMICOLON)
+				if (sym == SEMICOLON){
 					getsym();
+					break;
+				}
 				else{
 					reportError(28);	//常量声明结束缺少";"
 					recover(fsys);
@@ -1569,15 +1560,25 @@ void Block(int btp,int offset, set<SYMTYPE> &fsys){
 	set<SYMTYPE> fsys2(fsys);
 	fsys2.insert(SEMICOLON);	fsys2.insert(ENDSYM);
 	curOffset = offset;
+	if (sym != BEGINSYM){
+		set<SYMTYPE> fsys3(STMTFIRST);
+		test(fsys3, fsys, 50);
+	}
 	statement(tmpindex,fsys2);		//statement( [semicolon,endsym]+fsys);
 	STABLE[btp].plink->varsize = curOffset - 4;		//这时的curOffset比实际需要的多4
 	//回填申请空间, 计算方法应为 offset + tmpindex*4 + display区等等，实际上就等于
-	genImc(RET, "", "", "");
+	genImc(RET, "", "", "");		
 	cxsted = cx;
 	fsys2.clear();
-	test(fsys,fsys2,39);
-	genAsm(cxbg,cxbg+2);
-	genAsm(cxstbg+1,cxsted);
+	test(fsys, fsys2, 39);
+
+#ifdef DAGOPT
+	optLocalExpr(cxbg, cxbg + 1);		//这里的区间是闭区间，而由于有楼下的原因，所以cxbg+2无需处理
+	optLocalExpr(cxstbg + 1, cxsted - 1);	//这里之所以 + 1,原因同楼下
+#endif
+
+	genAsm(cxbg, cxbg + 2);				//这里的区间是左闭右开，因为第三条肯定是JMP，目标地址就是下一条指令，因此无需处理第三条
+	genAsm(cxstbg + 1, cxsted);			//这里之所以 + 1,原因同楼上
 	//hold,删除当前子活动记录，并删除符号表中的本活动记录的内容
 	popstable();
 }
@@ -1677,7 +1678,7 @@ int main(){
 #endif // DEBUG
 
 	outimcode.open("imcode.txt");
-	outfinalcode.open("C:\\masm32\\Hello\\PL0code.asm");
+	outfinalcode.open("D:\\masm32\\Hello\\PL0code.asm");
 	outasmtmp.open("temp.txt");
 
 	initial();
@@ -1695,9 +1696,10 @@ int main(){
 	BlockIndex[BItop] = 0;			//初始化分程序索引表
 	set<SYMTYPE> fsys(STMTFIRST);						//生成参数
 	fsys.insert(DECLARAFIRST.begin(),DECLARAFIRST.end());			//block( 0,0,[period]+declbegsys+statbegsys );
+	fsys.insert(STMTFIRST.begin(), STMTFIRST.end());
+	fsys.insert(PERIOD);
 	//genImc(JMP,"","","FUNCTION0");
 	Block(0, 4, fsys);
-	locate("abcdefsgef");
 	if (sym != PERIOD)
 		reportError(0);
 	if (err == 0){

@@ -38,7 +38,7 @@ void getsymt(char ss){				//此处使用二分查找获取单个字符的类型
 void getch(){
 	while (cc == ll){		//read the next line
 		if (!getline(in, line) && sym != PERIOD){
-			fprintf(stdout, "Program incomplete!");
+			printf("Program incomplete!");
 			closefiles();
 			exit(0);
 		}

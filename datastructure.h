@@ -5,14 +5,16 @@
 #include <iostream>
 #include <fstream>
 #include <set>
+#include <vector>
+#include <map>
 
-//#define DEBUG
+#define DEBUG
+#define DAGOPT
 
 #define NRSRVW		46			//保留字以及符号个数
 #define TABLENMAX	1009		//符号表大小上限
 #define	NUMLENMAX	10 			//数字长度上限
 #define IDLENMAX	20			//标识符长度限制
-#define ADDRMAX		2047
 #define LVMAX		6			//嵌套层次的最大限度
 #define CODEASIZE	2000		//四元式数量上限
 #define COMMONSYMINDEX	13
@@ -46,7 +48,7 @@ enum IDTYPE
 
 enum INSTRTYPE
 {
-	ADD = 0, SUB, MUL, DIV, INC, DEC, MNS, MOV, MOVA, LA, STEAX,
+	NOP = 0, ADD , SUB, MUL, DIV, INC, DEC, MNS, MOV, MOVA, LA, STEAX,
 	BEQ, BNE, BGE, BGT, BLE, BLT, JMP, ELB,
 	PARA, PARAQ, CALL, INI, RET, WRT, RED
 };
@@ -94,9 +96,12 @@ typedef struct instr{
 }IMC;
 
 typedef struct dnode{
-	int lchild;
-	int rchild;
-};
+	IMC Op;
+	bool isleaf;
+	std::string firsttmp;
+	std::vector<int> fathers;
+	std::vector<std::string> eqlVars;
+}DagNode;
 
 
 void closefiles();
@@ -111,7 +116,7 @@ void getsym();
 
 void registe(SYMITEM &item);
 
-int locate(std::string name);
+int locate(std::string &name);
 
 void genImc(INSTRTYPE iT, std::string op1, std::string op2, std::string dest);
 
@@ -120,5 +125,7 @@ void listImc();
 void genAsm(int cxbg, int cxend);
 
 bool exprTypecheck(IDTYPE dest, IDTYPE src);
+
+void optLocalExpr(int begin, int terminus);
 
 IDTYPE expression(int &tmpindex, std::string &opname, std::set<SYMTYPE> &fsys);

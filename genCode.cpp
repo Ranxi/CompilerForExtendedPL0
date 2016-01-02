@@ -1,4 +1,4 @@
-#include "datastructure.h"
+﻿#include "datastructure.h"
 using namespace std;
 
 extern ifstream  in;
@@ -40,6 +40,8 @@ void listImc(){
 	while (p < cx){
 		iT = CODE[p].instrT;
 		switch (iT){
+			case NOP:
+				break;
 			case ADD:{
 				outimcode << "\t\tADD\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
@@ -148,6 +150,7 @@ void listImc(){
 				break;
 			}
 			default:
+				outimcode << "Something Wrong!" << endl;
 				break;
 		}
 		p++;
@@ -261,6 +264,8 @@ void genAsm(int cxbg,int cxend){
 		iT = CODE[p].instrT;
 		switch (iT)
 		{
+		case NOP:
+			break;
 		case ADD:
 			i1 = locate(CODE[p].op1);
 			i2 = locate(CODE[p].op2);
@@ -792,6 +797,7 @@ void genAsm(int cxbg,int cxend){
 			}
 			break;
 		default:
+			outasmtmp << "Something Wrong!" << endl;
 			break;
 		}
 		p++;

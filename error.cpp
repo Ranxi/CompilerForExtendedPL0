@@ -14,7 +14,7 @@ void reportError(int errorcode){
 	//abc = 1;
 	switch (errorcode) {
 	case 0:
-		errorinfo = "程序末尾没有\".\"";break;
+		errorinfo = "程序没有以\".\"做结束符或其他错误"; break;
 	case 1:
 		errorinfo = "\"" + id + "\"" + "is defined duplicately!"; break;
 	case 2:
@@ -113,6 +113,8 @@ void reportError(int errorcode){
 		errorinfo = "WHILE前的符号不合法";break;
 	case 49:
 		errorinfo = "Unrecognized token！";break;
+	case 50:
+		errorinfo = "分程序的语句必须在复合语句块内，即应以begin开始"; break;
 	default:
 		errorinfo = "Other Error !";
 	}
@@ -122,7 +124,7 @@ void reportError(int errorcode){
 }
 
 void test(set<SYMTYPE> &s1, set<SYMTYPE> &s2, int errorcode){
-	if (s1.count(sym) < 0){
+	if (s1.count(sym) <= 0){
 		reportError(errorcode);
 		s1.insert(s2.begin(), s2.end());
 		while (s1.count(sym) < 1){
