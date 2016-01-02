@@ -155,11 +155,15 @@ void getsym(){
 				sym = ZIFU;
 				getch();
 			}
-			else
+			else{
 				sym = NUL;
+				reportError(49);
+			}
 		}
-		else
+		else{
 			sym = NUL;
+			reportError(49);
+		}
 	}
 	else if (ch == '\"'){
 		tokenbuf = "";
@@ -172,8 +176,10 @@ void getsym(){
 			sym = ZIFUC;
 			getch();
 		}
-		else
+		else{
 			sym = NUL;
+			reportError(49);
+		}
 	}
 	//else if (ch == '\/'){
 	//	getch();

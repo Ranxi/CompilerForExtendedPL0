@@ -6,7 +6,7 @@
 #include <fstream>
 #include <set>
 
-#define DEBUG
+//#define DEBUG
 
 #define NRSRVW		46			//保留字以及符号个数
 #define TABLENMAX	1009		//符号表大小上限
@@ -92,6 +92,11 @@ typedef struct instr{
 	std::string op2;
 	std::string dest;
 }IMC;
+
+typedef struct dnode{
+	int lchild;
+	int rchild;
+};
 
 
 void closefiles();

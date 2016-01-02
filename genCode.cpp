@@ -27,6 +27,11 @@ void genImc(INSTRTYPE iT, string op1, string op2, string dest){
 	CODE[cx].op2 = op2;
 	CODE[cx].dest = dest;
 	cx++;
+	if (cx >= CODEASIZE){
+		printf("Sorry, the program is too long!");
+		closefiles();
+		exit(0);
+	}
 }
 
 void listImc(){
@@ -574,8 +579,10 @@ void genAsm(int cxbg,int cxend){
 			//movEDXtoTarget(idest);
 			break;
 		case STEAX:
-			idest = locate(CODE[p].dest);		//只会是同一层的临时变量，charvar 或者 numvar
-			outasmtmp << "\tmov\tdword ptr [ebp-" << STABLE[idest].offset << "],eax" << endl;
+			idest = locate(CODE[p].dest);	//	//优化前：只会是同一层的临时变量，charvar 或者 numvar
+			outasmtmp << "\tmov\tedx,eax" << endl;
+			movEDXtoTarget(idest);
+			//outasmtmp << "\tmov\tdword ptr [ebp-" << STABLE[idest].offset << "],eax" << endl;
 			break;
 		case BEQ:
 			i1 = locate(CODE[p].op1);

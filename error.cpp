@@ -111,6 +111,8 @@ void reportError(int errorcode){
 		errorinfo = "此立即数太大！"; break;
 	case 48:
 		errorinfo = "WHILE前的符号不合法";break;
+	case 49:
+		errorinfo = "Unrecognized token！";break;
 	default:
 		errorinfo = "Other Error !";
 	}
