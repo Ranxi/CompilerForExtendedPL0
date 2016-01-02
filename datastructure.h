@@ -19,11 +19,8 @@
 #define RSVWBEGININDEX	21
 #define RSVWENDINDEX	40
 #define PARANUMMAX		10		//参数个数上限
+#define STRCONSTMAX		30		//字符串常量数量上限
 
-std::string RSRVWORD[NRSRVW];
-std::string RSRVWORDT[NRSRVW];
-std::string ENUMNAME[NRSRVW];
-char SSYMT[18];
 
 enum SYMTYPE
 {
@@ -42,14 +39,14 @@ enum SYMTYPE
 };
 enum IDTYPE
 {
-	CHARCONST,	CHARVAR,	CHAREXP,	CHARREF,
+	CHARCONST = 0,	CHARVAR,	CHAREXP,	CHARREF,
 	NUMCONST,	NUMVAR,		NUMEXP,		NUMREF,
 	ARRAY, PROCEDURE, FUNCTION
 };
 
 enum INSTRTYPE
 {
-	ADD, SUB, MUL, DIV, INC, DEC, MNS, MOV, MOVA, LA, STEAX,
+	ADD = 0, SUB, MUL, DIV, INC, DEC, MNS, MOV, MOVA, LA, STEAX,
 	BEQ, BNE, BGE, BGT, BLE, BLT, JMP, ELB,
 	PARA, PARAQ, CALL, INI, RET, WRT, RED
 };
@@ -60,7 +57,7 @@ typedef struct arrayinfo{
 	//目前就这些吧
 }*ARRAYLINK;
 
-typedef struct parainfo{
+struct parainfo{
 	std::string name;
 	bool		isVar;
 	IDTYPE		type;
@@ -98,5 +95,22 @@ typedef struct instr{
 }IMC;
 
 
+void reportError(int errorcode);
 
-IDTYPE expression(int &tmpindex, std::string &opname, std::set<SYMTYPE> fsys);
+void test(std::set<SYMTYPE> &s1, std::set<SYMTYPE> &s2, int errorcode);
+
+void recover(std::set<SYMTYPE> &s);
+
+void getsym();
+
+void registe(SYMITEM &item);
+
+int locate(std::string name);
+
+void genImc(INSTRTYPE iT, std::string op1, std::string op2, std::string dest);
+
+void listImc();
+
+void genAsm(int cxbg, int cxend);
+
+IDTYPE expression(int &tmpindex, std::string &opname, std::set<SYMTYPE> &fsys);
