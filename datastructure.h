@@ -1,20 +1,24 @@
-#include <cstdio>
+Ôªø#include <cstdio>
 #include <ctype.h>
+#include <stdlib.h>
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <set>
 
-#define NRSRVW		46			//±£¡Ù◊÷“‘º∞∑˚∫≈∏ˆ ˝
-#define TABLENMAX	307
+#define DEBUG
+
+#define NRSRVW		46			//‰øùÁïôÂ≠ó‰ª•ÂèäÁ¨¶Âè∑‰∏™Êï∞
+#define TABLENMAX	1009
 #define	NUMLENMAX	10
 #define IDLENMAX	20
 #define ADDRMAX		2047
-#define LVMAX		3
-#define CODEASIZE	200
+#define LVMAX		3			//ÂµåÂ•óÂ±ÇÊ¨°ÁöÑÊúÄÂ§ßÈôêÂ∫¶
+#define CODEASIZE	2000
 #define COMMONSYMINDEX	13
 #define RSVWBEGININDEX	21
 #define RSVWENDINDEX	40
-#define PARANUMMAX		10		//≤Œ ˝∏ˆ ˝…œœﬁ
+#define PARANUMMAX		10		//ÂèÇÊï∞‰∏™Êï∞‰∏äÈôê
 
 std::string RSRVWORD[NRSRVW];
 std::string RSRVWORDT[NRSRVW];
@@ -38,13 +42,22 @@ enum SYMTYPE
 };
 enum IDTYPE
 {
-	CHARCONST = 0, CHARVAR, NUMCONST, NUMVAR, ARRAY, PROCEDURE, FUNCTION, CHARPARA, NUMPARA
+	CHARCONST,	CHARVAR,	CHAREXP,	CHARREF,
+	NUMCONST,	NUMVAR,		NUMEXP,		NUMREF,
+	ARRAY, PROCEDURE, FUNCTION
+};
+
+enum INSTRTYPE
+{
+	ADD, SUB, MUL, DIV, INC, DEC, MNS, MOV, MOVA, LA, STEAX,
+	BEQ, BNE, BGE, BGT, BLE, BLT, JMP, ELB,
+	PARA, PARAQ, CALL, INI, RET, WRT, RED
 };
 
 typedef struct arrayinfo{
 	int size;		//upper bound
 	IDTYPE elementt;
-	//ƒø«∞æÕ’‚–©∞…
+	//ÁõÆÂâçÂ∞±Ëøô‰∫õÂêß
 }*ARRAYLINK;
 
 typedef struct parainfo{
@@ -55,7 +68,8 @@ typedef struct parainfo{
 
 typedef struct pfinfo{
 	int paranum;
-	int addr;
+	int varsize;
+	std::string addr;
 	IDTYPE retvaluet;
 	parainfo paras[PARANUMMAX];
 	/*std::string paraname[PARANUMMAX];
@@ -67,76 +81,22 @@ typedef struct item{
 	std::string name;
 	IDTYPE type;
 	int level;
-	int offset;
+	union{
+		int offset;
+		int constv;
+	};
 	struct arrayinfo *alink;			//complement link for array
 	struct pfinfo *plink;				//complement link for procedure and function
-	struct item *link;
+	int link;
 }SYMITEM, *SYMITEMLINK;
 
+typedef struct instr{
+	INSTRTYPE instrT;
+	std::string op1;
+	std::string op2;
+	std::string dest;
+}IMC;
 
-void expression();
 
-//#include <cstdio>
-//#include <ctype.h>
-//#include <string>
-//#include <iostream>
-//#include <fstream>
-//
-//#define NRSRVW		46			//±£¡Ù◊÷“‘º∞∑˚∫≈∏ˆ ˝
-//#define TABLENMAX	307
-//#define	NUMLENMAX	10
-//#define IDLENMAX	20
-//#define ADDRMAX		2047
-//#define LVMAX		3
-//#define CODEASIZE	1000
-//#define COMMONSYMINDEX	13
-//#define RSVWBEGININDEX	21
-//#define RSVWENDINDEX	40
-//
-//std::string RSRVWORD[NRSRVW];
-//std::string RSRVWORDT[NRSRVW];
-//std::string ENUMNAME[NRSRVW];
-//char SSYMT[18];
-//
-//enum SYMTYPE
-//{
-//	DQUOSYM = 0, SQUOSYM, LPAREN, RPAREN,
-//	TIMES, PLUS, COMMA, MINUS,
-//	PERIOD, SLASH, SEMICOLON, EQL,
-//	LSQBSYM, RSQBSYM, LSS, LEQ,
-//	GTR, GEQ, BECOMES, COLON,
-//	NEQ, ARRAYSYM, BEGINSYM, CHARSYM,
-//	CONSTSYM, DOSYM, DOWNTOSYM, ELSESYM,
-//	ENDSYM, FORSYM, FUNCSYM, IFSYM,
-//	INTSYM, OFSYM, PROCSYM, READSYM,
-//	THENSYM, TOSYM, VARSYM, WHILESYM,
-//	WRITESYM, ZIFU, ZIFUC, IDF,
-//	NUMBER, NUL
-//};
-//enum IDTYPE
-//{
-//	CHARCONST = 0, CHARVAR, NUMCONST, NUMVAR, ARRAY, PROCEDURE, FUNCTION, CHARPARA, NUMPARA
-//};
-//
-//typedef struct arrayinfo{
-//	int size;		//upper bound
-//	IDTYPE elementt;
-//	//ƒø«∞æÕ’‚–©∞…
-//}*ARRAYLINK;
-//
-//typedef struct pfinfo{
-//	int paranum;
-//	int addr;
-//	IDTYPE retvaluet;
-//	std::string paraname[8];
-//}*FPLINK;
-//
-//typedef struct item{
-//	std::string name;
-//	IDTYPE type;
-//	int level;
-//	int offset;
-//	struct arrayinfo *alink;			//complement link for array
-//	struct pfinfo *plink;				//complement link for procedure and function
-//	struct item *link;
-//}SYMITEM, *SYMITEMLINK;
+
+IDTYPE expression(int &tmpindex, std::string &opname, std::set<SYMTYPE> fsys);
