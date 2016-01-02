@@ -13,7 +13,7 @@
 #define	NUMLENMAX	10 			//数字长度上限
 #define IDLENMAX	20			//标识符长度限制
 #define ADDRMAX		2047
-#define LVMAX		3			//嵌套层次的最大限度
+#define LVMAX		6			//嵌套层次的最大限度
 #define CODEASIZE	2000		//四元式数量上限
 #define COMMONSYMINDEX	13
 #define RSVWBEGININDEX	21
@@ -54,7 +54,6 @@ enum INSTRTYPE
 typedef struct arrayinfo{
 	int size;		//upper bound
 	IDTYPE elementt;
-	//目前就这些吧
 }*ARRAYLINK;
 
 struct parainfo{
@@ -95,6 +94,8 @@ typedef struct instr{
 }IMC;
 
 
+void closefiles();
+
 void reportError(int errorcode);
 
 void test(std::set<SYMTYPE> &s1, std::set<SYMTYPE> &s2, int errorcode);
@@ -112,5 +113,7 @@ void genImc(INSTRTYPE iT, std::string op1, std::string op2, std::string dest);
 void listImc();
 
 void genAsm(int cxbg, int cxend);
+
+bool exprTypecheck(IDTYPE dest, IDTYPE src);
 
 IDTYPE expression(int &tmpindex, std::string &opname, std::set<SYMTYPE> &fsys);

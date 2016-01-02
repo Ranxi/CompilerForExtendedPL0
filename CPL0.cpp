@@ -1,10 +1,9 @@
 #include "datastructure.h"
-
 using namespace std;
 
 ifstream  in;
 ifstream  inasmtmp;					// 从中间代码文件中读取指令
-ofstream  out;						// 中间代码文件
+ofstream  outimcode;				// 中间代码文件
 ofstream  outasmtmp;				// 目标代码临时文件
 ofstream  outfinalcode;				// 目标代码最终文件
 
@@ -43,6 +42,14 @@ string RSRVWORD[NRSRVW];			// 保留字表
 string RSRVWORDT[NRSRVW];			// 保留字表相对应的保留字类型
 char SSYMT[18];
 
+
+void closefiles(){
+	in.close();
+	inasmtmp.close();
+	outimcode.close();
+	outasmtmp.close();
+	outfinalcode.close();
+}
 //hash表，便于查询符号表
 int Hash(string name){
 	int unsigned t;
@@ -62,7 +69,7 @@ void registe(SYMITEM &item){
 	tp++;
 	if (tp >= TABLENMAX){
 		printf("符号表已满，被迫终止编译程序");
-		in.close();
+		closefiles();
 		exit(0);
 	}
 	STABLE[tp] = item;					//bit copy
@@ -253,7 +260,8 @@ void vardeclaration(int &offset, set<SYMTYPE> &fsys){
 									}
 									if(lvl==0){
 										for(k = nvar-1; k>=0;k--)
-											outasmtmp << "\t" << STABLE[tp - k].name << "\t\tdd\t\t" << upperbd << "\t\tdup(?)" << endl;
+											outasmtmp << "\t" << STABLE[tp - k].name << "\t\tdd\t\t" << upperbd 
+											<< "\t\tdup(?)" << endl;
 									}
 									else{
 										for(k = nvar-1;k>=0;k--){
@@ -480,6 +488,8 @@ void parameterdec(bool isprocedure, set<SYMTYPE> &fsys){
 			//reportError(21);								//参数结尾没有")"
 		}
 		else{
+			if (paran == 0)
+				reportError(45);							//过程或函数没有参数时无需加()
 			if (!isprocedure){
 				getsym();
 				if (sym == COLON){
@@ -491,6 +501,9 @@ void parameterdec(bool isprocedure, set<SYMTYPE> &fsys){
 						atemp.type = STABLE[pftp].plink->retvaluet;
 						atemp.level = lvl;
 						atemp.offset = 4;			//将函数的返回值放到EBP上面一个单元
+						atemp.alink = NULL;
+						atemp.plink = NULL;
+						atemp.link = -1;
 						registe(atemp);
 					}
 					else{
@@ -521,6 +534,9 @@ void parameterdec(bool isprocedure, set<SYMTYPE> &fsys){
 			atemp.type = STABLE[tp].plink->retvaluet;
 			atemp.level = lvl;
 			atemp.offset = 4;			//将函数的返回值放到EBP上面一个单元
+			atemp.alink = NULL;
+			atemp.plink = NULL;
+			atemp.link = -1;
 			registe(atemp);
 			getsym();
 		}
@@ -568,7 +584,10 @@ void callp(int &tmpindex,int pptr, set<SYMTYPE> &fsys){
 			else if (fpt == NUMVAR && (NUMVAR <= apt && apt <= NUMREF)){
 				if(apt == NUMREF){		//something different
 					//genImc(PARAQ,opname,"","");
-					TMPPARA[pNo].instrT = PARAQ;
+					if (opname.substr(0, 2) == "t_")		//数组元素
+						TMPPARA[pNo].instrT = PARA;
+					else
+						TMPPARA[pNo].instrT = PARAQ;
 					TMPPARA[pNo].op1 = opname;
 				}
 				else{
@@ -577,12 +596,15 @@ void callp(int &tmpindex,int pptr, set<SYMTYPE> &fsys){
 				}
 			} 
 			else if (fpt == NUMREF && (apt==NUMVAR||apt==NUMREF)){
-					TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
+				TMPPARA[pNo].instrT = PARAQ;
+				TMPPARA[pNo].op1 = opname;
 			}
 			else if (fpt == CHARVAR && (CHARVAR <= apt && apt <= CHARREF)){
-				if(apt == NUMREF){		//something different
-					TMPPARA[pNo].instrT = PARAQ;
+				if(apt==CHARREF){		//something different
+					if (opname.substr(0, 2) == "t_")		//数组元素
+						TMPPARA[pNo].instrT = PARA;
+					else
+						TMPPARA[pNo].instrT = PARAQ;
 					TMPPARA[pNo].op1 = opname;
 				}
 				else{
@@ -591,8 +613,8 @@ void callp(int &tmpindex,int pptr, set<SYMTYPE> &fsys){
 				}
 			}
 			else if (fpt == CHARREF && (apt==CHARVAR||apt==CHARREF)){
-					TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
+				TMPPARA[pNo].instrT = PARAQ;
+				TMPPARA[pNo].op1 = opname;
 			}
 			else 
 				break;
@@ -619,7 +641,7 @@ void callp(int &tmpindex,int pptr, set<SYMTYPE> &fsys){
 	}
 	else if (sym == SEMICOLON||sym == ENDSYM){			//过程名称后面参数列表为空
 		if (STABLE[pptr].plink->paranum != 0){
-			reportError(17);			//函数或过程调用缺少参数
+			reportError(25);			//函数或过程调用缺少参数
 			recover(fsys);
 			return;
 		}
@@ -652,7 +674,11 @@ void callf(int &tmpindex, string &opname,int fptr, set<SYMTYPE> &fsys){
 			}
 			else if (fpt == NUMVAR && (NUMVAR <= apt && apt <= NUMREF)){
 				if(apt == NUMREF){		//something different
-					TMPPARA[pNo].instrT = PARAQ;
+					//genImc(PARAQ,opname,"","");
+					if (opname.substr(0, 2) == "t_")		//数组元素
+						TMPPARA[pNo].instrT = PARA;
+					else
+						TMPPARA[pNo].instrT = PARAQ;
 					TMPPARA[pNo].op1 = opname;
 				}
 				else{
@@ -661,18 +687,15 @@ void callf(int &tmpindex, string &opname,int fptr, set<SYMTYPE> &fsys){
 				}
 			} 
 			else if (fpt == NUMREF && (apt==NUMVAR||apt==NUMREF)){
-				if(apt==NUMREF){		//something different
-					TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
-				}
-				else{
-					TMPPARA[pNo].instrT = PARA;
-					TMPPARA[pNo].op1 = opname;
-				}
+				TMPPARA[pNo].instrT = PARAQ;
+				TMPPARA[pNo].op1 = opname;
 			}
 			else if (fpt == CHARVAR && (CHARVAR <= apt && apt <= CHARREF)){
 				if(apt==CHARREF){		//something different
-					TMPPARA[pNo].instrT = PARAQ;
+					if (opname.substr(0, 2) == "t_")		//数组元素
+						TMPPARA[pNo].instrT = PARA;
+					else
+						TMPPARA[pNo].instrT = PARAQ;
 					TMPPARA[pNo].op1 = opname;
 				}
 				else{
@@ -681,14 +704,8 @@ void callf(int &tmpindex, string &opname,int fptr, set<SYMTYPE> &fsys){
 				}
 			}
 			else if (fpt == CHARREF && (apt==CHARVAR||apt==CHARREF)){
-				if(apt==CHARREF){		//something different
-					TMPPARA[pNo].instrT = PARAQ;
-					TMPPARA[pNo].op1 = opname;
-				}
-				else{
-					TMPPARA[pNo].instrT = PARA;
-					TMPPARA[pNo].op1 = opname;
-				}
+				TMPPARA[pNo].instrT = PARAQ;
+				TMPPARA[pNo].op1 = opname;
 			}
 			else 
 				break;
@@ -721,7 +738,7 @@ void callf(int &tmpindex, string &opname,int fptr, set<SYMTYPE> &fsys){
 		//reportError(117);				//函数调用语句缺少";"
 		//printf("P2(F1)");
 		if (STABLE[fptr].plink->paranum != 0){
-			reportError(17);			//函数或过程调用缺少参数
+			reportError(25);			//函数或过程调用缺少参数
 			return;
 		}
 	}
@@ -734,6 +751,9 @@ void callf(int &tmpindex, string &opname,int fptr, set<SYMTYPE> &fsys){
 	atemp.type = STABLE[fptr].plink->retvaluet;
 	atemp.level = lvl;
 	atemp.offset = curOffset;
+	atemp.alink = NULL;
+	atemp.plink = NULL;
+	atemp.link = -1;
 	registe(atemp);
 	curOffset += 4;
 	genImc(STEAX,"","",opname);
@@ -764,6 +784,11 @@ IDTYPE factor(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 						fsys2.insert(RSQBSYM);
 						indexType = expression(tmpindex,opname,fsys2);
 						//下标类型检查
+						if( indexType < NUMCONST && NUMREF < indexType ){
+							reportError(43);			//数组下标类型只能是整型
+							recover(fsys);
+							return (IDTYPE)0;
+						}
 						indexResult = opname;
 
 						//在符号表中注册临时变量
@@ -775,9 +800,12 @@ IDTYPE factor(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 							atemp.type = NUMREF;
 						else
 							atemp.type = CHARREF;
-						//atemp.type = factorType;
+						factorType = atemp.type;
 						atemp.level = lvl;
 						atemp.offset = curOffset;
+						atemp.alink = NULL;
+						atemp.plink = NULL;
+						atemp.link = -1;
 						registe(atemp);
 						curOffset += 4;
 						genImc(LA,STABLE[i].name,indexResult,opname);//生成LOAD指令，将数组元素所在地址存到临时变量（引用）
@@ -837,6 +865,9 @@ IDTYPE factor(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 			atemp.type = NUMCONST;
 			atemp.level = lvl;
 			atemp.constv = digits;
+			atemp.alink = NULL;
+			atemp.plink = NULL;
+			atemp.link = -1;
 			registe(atemp);
 			//在符号表中注册这个常量
 			getsym();
@@ -881,6 +912,9 @@ IDTYPE term(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 		atemp.type = NUMVAR;
 		atemp.level = lvl;
 		atemp.offset = curOffset;
+		atemp.alink = NULL;
+		atemp.plink = NULL;
+		atemp.link = -1;
 		registe(atemp);
 		curOffset += 4;
 		//注册完毕
@@ -916,6 +950,9 @@ IDTYPE expression(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 			atemp.type = NUMVAR;
 			atemp.level = lvl;
 			atemp.offset = curOffset;
+			atemp.alink = NULL;
+			atemp.plink = NULL;
+			atemp.link = -1;
 			registe(atemp);
 			curOffset += 4;
 			//注册完毕
@@ -937,6 +974,9 @@ IDTYPE expression(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 		atemp.type = NUMVAR;
 		atemp.level = lvl;
 		atemp.offset = curOffset;
+		atemp.alink = NULL;
+		atemp.plink = NULL;
+		atemp.link = -1;
 		registe(atemp);
 		curOffset += 4;
 		//注册完毕
@@ -950,12 +990,10 @@ IDTYPE expression(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 }
 
 bool exprTypecheck(IDTYPE dest, IDTYPE src){
-	if ((dest == NUMVAR || dest == NUMREF) && (CHARVAR <= src && src <= NUMREF)){
+	if ((dest == NUMVAR || dest == NUMREF) && (CHARVAR <= src && src <= NUMREF))
 		return true;
-	}
-	else if ((dest == CHARVAR || dest == CHARREF) && (CHARVAR <= src && src <= CHARREF)){
+	else if ((dest == CHARVAR || dest == CHARREF) && (CHARVAR <= src && src <= CHARREF))
 		return true;
-	}
 	else
 		return false;
 }
@@ -972,9 +1010,8 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 			exprType = expression(tmpindex,opname,fsys);
 			if (!exprTypecheck(STABLE[i].plink->retvaluet, exprType))
 				reportError(42);			//赋值语句等号两边类型不匹配
-			else{
+			else
 				genImc(MOV,opname,"",STABLE[i].name+"_retv");
-			}
 		}
 		else{
 			reportError(23);				// 函数赋值语句后面缺少赋值符号":="		赋值语句缺少":="
@@ -1009,9 +1046,8 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 			if (sym == BECOMES){
 				getsym();
 				exprType = expression(tmpindex,opname,fsys);
-				if (!exprTypecheck(STABLE[i].alink->elementt, exprType)){
+				if (!exprTypecheck(STABLE[i].alink->elementt, exprType))
 					reportError(42);
-				}
 				else{
 					//根据前面记录下的indexResult(也就是数组下标)生成STORE指令
 					genImc(MOVA, opname, indexResult, STABLE[i].name);
@@ -1019,7 +1055,7 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 				}
 			}
 			else{
-				reportError(23);			// 数组元素赋值操作缺少赋值符号":=" 		赋值语句缺少":="
+				reportError(23);
 				recover(fsys);
 				return;
 			}
@@ -1101,18 +1137,23 @@ void read(set<SYMTYPE> &fsys){
 	if (sym == LPAREN){
 		do{
 			getsym();
+			set<SYMTYPE> fsys2(fsys);
+			fsys2.insert(RPAREN);
 			if(sym!=IDF)
 				break;
 			i = locate(id);
 			if (i < 0 ){
 				reportError(11);		//未定义的标识符
-				recover(fsys);
+				recover(fsys2);
 				return;
 			}
 			else{
 				IDTYPE idft = STABLE[i].type;
-				if (idft == CHARCONST || idft == NUMCONST || (ARRAY <=idft && idft <= FUNCTION))
+				if (idft == CHARCONST || idft == NUMCONST || (ARRAY <= idft && idft <= FUNCTION)){
 					reportError(26);	//不可向常量或过程、函数以及数组整体赋值
+					recover(fsys2);
+					break;
+				}
 				else{
 					genImc(RED,"","",id);
 				}
@@ -1181,7 +1222,6 @@ void statement(int &tmpindex,set<SYMTYPE> &fsys){
 			if (idft == PROCEDURE){
 				getsym();
 				callp(tmpindex,i,fsys);
-				//genImc();			//生成跳转指令
 			}
 			else if (idft == CHARCONST || idft == NUMCONST){
 				reportError(26);		//不可向常量赋值
@@ -1206,29 +1246,32 @@ void statement(int &tmpindex,set<SYMTYPE> &fsys){
 			fsys2.insert(fsys.begin(), fsys.end());
 			fsys2.insert(ELSESYM);
 			statement(tmpindex,fsys2);
-		if (sym == ELSESYM){
-				cx2 = cx;
-				genImc(JMP, "", "", "");						//无条件跳转到ELSE后面的语句，gen(jmp,0,0)
-				CODE[cx1].dest = "LABEL"+to_string(labelNo);	//(* write back the target address of the jump code *)
-				genImc(ELB,"","","LABEL"+to_string(labelNo));	//生成LABEL
-				labelNo++;
-				getsym();
-				statement(tmpindex,fsys);
-				CODE[cx2].dest = "LABEL"+to_string(labelNo);	//(* write back the target address of the jump code *)
-				genImc(ELB,"","","LABEL"+to_string(labelNo));			//生成LABEL
-				labelNo++;
+ELSE1:		if (sym == ELSESYM){
+					cx2 = cx;
+					genImc(JMP, "", "", "");						//无条件跳转到ELSE后面的语句，gen(jmp,0,0)
+					CODE[cx1].dest = "LABEL"+to_string(labelNo);	//(* write back the target address of the jump code *)
+					genImc(ELB,"","","LABEL"+to_string(labelNo));	//生成LABEL
+					labelNo++;
+					getsym();
+					statement(tmpindex,fsys);
+					CODE[cx2].dest = "LABEL"+to_string(labelNo);	//(* write back the target address of the jump code *)
+					genImc(ELB,"","","LABEL"+to_string(labelNo));			//生成LABEL
+					labelNo++;
 			}
 			else{
-				recover(fsys2);
-				//if (sym == ELSESYM)
-					//goto  ELSE;
+				//fsys2.erase(SEMICOLON);
+				//recover(fsys2);
+				//fsys2.insert(SEMICOLON);
+				//if (sym == ELSESYM){
+				//	reportError(46);								//ELSE前的符号不合法
+				//	goto ELSE1;
+				//}
 				//else
-				//	reportError(41);
+				recover(fsys2);
 				genImc(ELB,"","","LABEL"+to_string(labelNo));
 				CODE[cx1].dest = "LABEL"+to_string(labelNo);//(* write back the target address of the jump code *)
 				labelNo++;
 			}
-
 		}
 		else{
 			reportError(27);				//if语句缺少then
@@ -1265,14 +1308,21 @@ void statement(int &tmpindex,set<SYMTYPE> &fsys){
 		set<SYMTYPE> fsys2(fsys);
 		fsys2.insert(WHILESYM);
 		statement(tmpindex,fsys2);
-		if (sym == WHILESYM){
+WHILE2:	if (sym == WHILESYM){
 			getsym();
 			condition(tmpindex,false,fsys);	//condition([dosym]+fsys);
 			CODE[cx-1].dest = lbname;		//填跳转地址，跳转回 do 后面的语句
 		}
 		else{
-			reportError(30);				//do while语句缺少while
+			fsys2.erase(SEMICOLON);
 			recover(fsys2);
+			fsys2.insert(SEMICOLON);
+			if(sym==WHILESYM){
+				reportError(48);			//WHILE前的符号不合法
+				goto WHILE2;
+			}
+			else
+				reportError(30);			//do while语句缺少while
 			return;
 		}
 	}
@@ -1293,13 +1343,28 @@ void statement(int &tmpindex,set<SYMTYPE> &fsys){
 					assignment(tmpindex,i,fsys);
 					if (sym == DOWNTOSYM || sym == TOSYM){
 						SYMTYPE DWNRORTO = sym;
-						string lbname = "LABEL" + to_string(labelNo);
-						genImc(ELB, "", "", lbname);			//生成LABEL
-						labelNo++;
 						getsym();
 						set<SYMTYPE> fsys2(fsys);
 						fsys2.insert(DOSYM);
 						expression(tmpindex, opname, fsys2);
+						if(opname.substr(0,2) != "t_"){		//如果表达式结果变量不是临时变量，将用临时变量存储
+							tmpindex ++;
+							SYMITEM atemp;
+							atemp.name = "t_" + to_string(tmpindex);
+							atemp.type = NUMVAR;
+							atemp.level = lvl;
+							atemp.offset = curOffset;
+							atemp.alink = NULL;
+							atemp.plink = NULL;
+							atemp.link = -1;
+							registe(atemp);
+							curOffset += 4;
+							genImc(MOV,opname,"",atemp.name);
+							opname = atemp.name;
+						}
+						string lbname = "LABEL" + to_string(labelNo);
+						genImc(ELB, "", "", lbname);			//生成LABEL
+						labelNo++;
 						cx1 = cx ;
 						if (DWNRORTO==DOWNTOSYM)
 							genImc(BLT, loopvar, opname, "");			//生成比较指令，然后再生成条件跳转指令
@@ -1408,11 +1473,11 @@ void Block(int btp,int offset, set<SYMTYPE> &fsys){
 				if (sym == PROCSYM || sym == FUNCSYM || sym == BEGINSYM)
 					break;
 			} while (sym == IDF);
-			if(lvl==0){
-				globalvartop = tp;
-				outasmtmp << "\n.code\n\nSTART:\n" << endl;
-				outasmtmp << "\tjmp\tLABEL0" << endl;
-			}
+		}
+		if (lvl == 0){
+			globalvartop = tp;
+			outasmtmp << "\n.code\n\nSTART:\n" << endl;
+			outasmtmp << "\tjmp\tLABEL0" << endl;
 		}
 		while (sym == PROCSYM||sym==FUNCSYM){
 			bool isprocedure;
@@ -1440,7 +1505,7 @@ void Block(int btp,int offset, set<SYMTYPE> &fsys){
 			if (sym == SEMICOLON)
 				getsym();
 			else{
-				reportError(28);			//过程或函数调用语句结尾缺少";"
+				reportError(28);			//过程或函数声明语句结尾缺少";"
 				recover(fsys);
 			}
 			set<SYMTYPE> fsys2(fsys);
@@ -1577,10 +1642,10 @@ int main(){
 #endif // !DEBUG
 	
 #ifdef DEBUG
-	in.open("b.txt");
+	in.open("a.txt");
 #endif // DEBUG
 
-	out.open("imcode.txt");
+	outimcode.open("imcode.txt");
 	outfinalcode.open("D:\\masm32\\Hello\\PL0code.asm");
 	outasmtmp.open("temp.txt");
 
@@ -1589,7 +1654,7 @@ int main(){
 	tp = -1;
 	getsym();
 	SYMITEM amain;
-	amain.name = "main";
+	amain.name = "_main";
 	amain.type = PROCEDURE;
 	amain.level = 0;
 	amain.plink = new pfinfo;
@@ -1601,19 +1666,20 @@ int main(){
 	fsys.insert(DECLARAFIRST.begin(),DECLARAFIRST.end());			//block( 0,0,[period]+declbegsys+statbegsys );
 	genImc(JMP,"","","LABEL0");
 	Block(0, 4, fsys);
+	locate("abcdefsgef");
 	if (sym != PERIOD)
-		reportError(142);
+		reportError(0);
 	if (err == 0){
 		printf("The compiler work is done!\n");
-		out << endl;
-		out << "The Immediate Code:" << endl;
+		outimcode << endl;
+		outimcode << "The Immediate Code:" << endl;
 		listImc();
 	}
 	else
 		printf("ERRORS IN YOUR PROGRAM\n");
 	outasmtmp << "end START" << endl;
 	in.close();
-	out.close();
+	outimcode.close();
 	outasmtmp.close();
 	//再把outasmtmp中的内容复制到outfinalcode中
 	inasmtmp.open("temp.txt");

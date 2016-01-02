@@ -2,7 +2,7 @@
 using namespace std;
 
 extern ifstream  in;
-extern ofstream  out;						// 中间代码文件
+extern ofstream  outimcode;					// 中间代码文件
 extern ofstream  outasmtmp;					// 目标代码临时文件
 extern ofstream  outfinalcode;				// 目标代码最终文件
 extern SYMITEM STABLE[TABLENMAX];			// the symbol table
@@ -36,110 +36,110 @@ void listImc(){
 		iT = CODE[p].instrT;
 		switch (iT){
 			case ADD:{
-				out << "\t\tADD\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tADD\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case SUB:{
-				out << "\t\tSUB\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tSUB\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case MUL:{
-				out << "\t\tMUL\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tMUL\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case DIV:{
-				out << "\t\tDIV\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tDIV\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case INC:{
-				out << "\t\tINC\t" << CODE[p].op1 << endl;
+				outimcode << "\t\tINC\t" << CODE[p].op1 << endl;
 				break;
 			}
 			case DEC:{
-				out << "\t\tDEC\t" << CODE[p].op1 << endl;
+				outimcode << "\t\tDEC\t" << CODE[p].op1 << endl;
 				break;
 			}
 			case MNS:{
-				out << "\t\tMNS\t" << CODE[p].op1 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tMNS\t" << CODE[p].op1 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case MOV:{
-				out << "\t\tMOV\t" << CODE[p].op1 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tMOV\t" << CODE[p].op1 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case MOVA:{
-				out << "\t\tMOVA\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tMOVA\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case LA:{
-				out << "\t\tLA\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tLA\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case STEAX:{
-				out << "\t\tSTEAX\t" << "EAX, " << CODE[p].dest << endl;
+				outimcode << "\t\tSTEAX\t" << "EAX, " << CODE[p].dest << endl;
 				break;
 			}
 			case BEQ:{
-				out << "\t\tBEQ\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tBEQ\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case BNE:{
-				out << "\t\tBNE\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tBNE\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case BGE:{
-				out << "\t\tBGE\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tBGE\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case BGT:{
-				out << "\t\tBGT\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tBGT\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case BLE:{
-				out << "\t\tBLE\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tBLE\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case BLT:{
-				out << "\t\tBLT\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
+				outimcode << "\t\tBLT\t" << CODE[p].op1 << ", " << CODE[p].op2 << ", " << CODE[p].dest << endl;
 				break;
 			}
 			case JMP:{
-				out << "\t\tJMP\t" << CODE[p].dest << endl;
+				outimcode << "\t\tJMP\t" << CODE[p].dest << endl;
 				break;
 			}
 			case ELB:{
-				out << CODE[p].dest << ":" << endl;
+				outimcode << CODE[p].dest << ":" << endl;
 				break;
 			}
 			case PARA:{
-				out << "\t\tPARA\t" << CODE[p].op1 << endl;
+				outimcode << "\t\tPARA\t" << CODE[p].op1 << endl;
 				break;
 			}
 			case PARAQ:{
-				out << "\t\tPARAQ\t" << CODE[p].op1 << endl;
+				outimcode << "\t\tPARAQ\t" << CODE[p].op1 << endl;
 				break;
 			}
 			case CALL:{
-				out << "\t\tCALL\t" << CODE[p].dest << endl;
+				outimcode << "\t\tCALL\t" << CODE[p].dest << endl;
 				break;
 			}
 			case INI : {
-				out << "\t\tINI\t" << CODE[p].dest << endl;
+				outimcode << "\t\tINI\t" << CODE[p].dest << endl;
 				break;
 			}
 			case RET:{
-				out << "\t\tRET\n" << endl;
+				outimcode << "\t\tRET\n" << endl;
 				break;
 			}
 			case WRT:{
 				if(CODE[p].op1 == "")
-					out << "\t\tWRT\t" << CODE[p].op2 << endl;
+					outimcode << "\t\tWRT\t" << CODE[p].op2 << endl;
 				else
-					out << "\t\tWRT\t" << CODE[p].op1 << endl;
+					outimcode << "\t\tWRT\t" << CODE[p].op1 << endl;
 				break;
 			}
 			case RED:{
-				out << "\t\tRED\t" << CODE[p].dest << endl;
+				outimcode << "\t\tRED\t" << CODE[p].dest << endl;
 				break;
 			}
 			default:
@@ -698,15 +698,23 @@ void genAsm(int cxbg,int cxend){
 			outasmtmp << "\tret" << endl;
 			break;
 		case WRT:
-			//out << "\t\tWRT\t" << CODE[p].op2 << endl;
+			//outimcode << "\t\tWRT\t" << CODE[p].op2 << endl;
 			if (CODE[p].op1 == ""){		//表达式
 				i2 = locate(CODE[p].op2);
 				loadOp1ToEDX(i2);
 				if (STABLE[i2].type <= CHARREF){		//字符
-					outasmtmp << "\tinvoke\tcrt_printf, addr print_char, edx" << endl;
+					outasmtmp << "\tpush\tedx" << endl;
+					outasmtmp << "\tpush\toffset print_char" << endl;
+					outasmtmp << "\tcall\tcrt_printf" << endl;
+					outasmtmp << "\tadd\tesp,8" << endl;
+					//outasmtmp << "\tinvoke\tcrt_printf, addr print_char, edx" << endl;
 				}
 				else{									//整型
-					outasmtmp << "\tinvoke\tcrt_printf, addr print_int, edx" << endl;
+					outasmtmp << "\tpush\tedx" << endl;
+					outasmtmp << "\tpush\toffset print_int" << endl;
+					outasmtmp << "\tcall\tcrt_printf" << endl;
+					outasmtmp << "\tadd\tesp,8" << endl;
+					//outasmtmp << "\tinvoke\tcrt_printf, addr print_int, edx" << endl;
 				}
 			}
 			else{			//字符串
@@ -722,14 +730,18 @@ void genAsm(int cxbg,int cxend){
 					suffix = strCstNo;
 					if(strCstNo >= STRCONSTMAX){
 						printf("字符串常量太多，被迫终止编译程序");
-						in.close();out.close();outasmtmp.close();outfinalcode.close();
+						closefiles();
 						exit(0);
 					}
 					strConst[suffix] = CODE[p].op1;
 					strCstNo++;
 					outfinalcode << "\tZIFUC_"<< suffix << "\t\tdb\t\t\"" << CODE[p].op1 << "\",0" << endl;
 				}
-				outasmtmp << "\tinvoke\tcrt_printf, addr print_str,offset ZIFUC_" << suffix << endl;
+				outasmtmp << "\tpush\toffset ZIFUC_" << suffix << endl;
+				outasmtmp << "\tpush\toffset print_str" << endl;
+				outasmtmp << "\tcall\tcrt_printf" << endl;
+				outasmtmp << "\tadd\tesp,8" << endl;
+				//outasmtmp << "\tinvoke\tcrt_printf, addr print_str,offset ZIFUC_" << suffix << endl;
 			}
 			break;
 		case RED:
@@ -742,10 +754,15 @@ void genAsm(int cxbg,int cxend){
 					loadexternVar(idest);
 					outasmtmp << "\tmov\tedx,[eax-8-" << STABLE[idest].offset << "]" << endl;
 				}
+				outasmtmp << "\tpush\tedx" << endl;
 				if (STABLE[idest].type == CHARREF)
-					outasmtmp << "\tinvoke\tcrt_scanf, addr read_char,edx" << endl;
+					outasmtmp << "\tpush\toffset read_char" << endl;
+					//outasmtmp << "\tinvoke\tcrt_scanf, addr read_char,edx" << endl;
 				else
-					outasmtmp << "\tinvoke\tcrt_scanf, addr read_int,edx" << endl;
+					outasmtmp << "\tpush\toffset read_int" << endl;
+					//outasmtmp << "\tinvoke\tcrt_scanf, addr read_int,edx" << endl;
+				outasmtmp << "\tcall\tcrt_scanf" << endl;
+				outasmtmp << "\tadd\tesp,8" << endl;
 			}
 			else{//把变量地址加载到edx
 				if(STABLE[idest].level == 0 && idest <= globalvartop)		//全局变量
@@ -756,10 +773,15 @@ void genAsm(int cxbg,int cxend){
 					loadexternVar(idest);
 					outasmtmp << "\tlea\tedx,[eax-8-" << STABLE[idest].offset << "]" << endl;
 				}
+				outasmtmp << "\tpush\tedx" << endl;
 				if (STABLE[idest].type == CHARVAR)
-					outasmtmp << "\tinvoke\tcrt_scanf, addr read_char,edx" << endl;
+					outasmtmp << "\tpush\toffset read_char" << endl;
+					//outasmtmp << "\tinvoke\tcrt_scanf, addr read_char,edx" << endl;
 				else
-					outasmtmp << "\tinvoke\tcrt_scanf, addr read_int,edx" << endl;
+					outasmtmp << "\tpush\toffset read_int" << endl;
+					//outasmtmp << "\tinvoke\tcrt_scanf, addr read_int,edx" << endl;
+				outasmtmp << "\tcall\tcrt_scanf" << endl;
+				outasmtmp << "\tadd\tesp,8" << endl;
 			}
 			break;
 		default:

@@ -1,6 +1,6 @@
 ﻿#include "datastructure.h"
 using namespace std;
-extern ofstream  out;
+extern ofstream  outimcode;
 
 extern string id;
 extern int lnum, cc, err;
@@ -74,7 +74,7 @@ void reportError(int errorcode){
 	case 29:
 		errorinfo = "此处应为分号或end"; break;
 	case 30:
-		errorinfo = "此立即数太大"; break;
+		errorinfo = "do while语句缺少while"; break;
 	case 31:
 		errorinfo = "for 后面应该有循环变量"; break;
 	case 32:
@@ -103,13 +103,20 @@ void reportError(int errorcode){
 		errorinfo = "数组下标类型只能是整型"; break;
 	case 44:
 		errorinfo = "条件表达式中比较运算符两边的类型不正确"; break;
+	case 45:
+		errorinfo = "过程或函数没有参数时无需加()"; break;
+	case 46:
+		errorinfo = "ELSE前的符号不合法";break;
+	case 47:
+		errorinfo = "此立即数太大！"; break;
+	case 48:
+		errorinfo = "WHILE前的符号不合法";break;
 	default:
 		errorinfo = "Other Error !";
 	}
 	cout << "Error " << errorcode << " : " << errorinfo << endl;
 	cout << "\t" << "line " << lnum << ", column " << cc << " !" << endl;
 	err++;
-	out.close();
 }
 
 void test(set<SYMTYPE> &s1, set<SYMTYPE> &s2, int errorcode){

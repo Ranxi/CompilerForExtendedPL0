@@ -2,7 +2,7 @@
 using namespace std;
 
 extern ifstream  in;
-extern ofstream  out;
+extern ofstream  outimcode;
 
 extern SYMTYPE sym;						// the type of the last token
 extern string id;						// the last identifer read by far
@@ -39,7 +39,7 @@ void getch(){
 	while (cc == ll){		//read the next line
 		if (!getline(in, line) && sym != PERIOD){
 			fprintf(stdout, "Program incomplete!");
-			in.close();
+			closefiles();
 			exit(0);
 		}
 		else if (sym == PERIOD){
@@ -68,7 +68,7 @@ void getsym(){
 		k = tokenbuf.length();
 		if (k > IDLENMAX){		//标识符过长
 			printf("The identifier is too long!");
-			in.close();
+			closefiles();
 			exit(0);
 		}
 		id = tokenbuf;
@@ -100,7 +100,7 @@ void getsym(){
 			getch();
 		}
 		if (isdigit(ch) && k > NUMLENMAX){
-			reportError(30);			//NUMBER 太大
+			reportError(47);			//NUMBER 太大
 			while (isdigit(ch)){
 				getch();
 			}
@@ -175,6 +175,16 @@ void getsym(){
 		else
 			sym = NUL;
 	}
+	//else if (ch == '\/'){
+	//	getch();
+	//	if (ch == '\/'){	//滤去注释
+	//		while (ch != '\n')
+	//			getch();
+	//		getch();
+	//	}
+	//	else
+	//		getsymt('\/');
+	//}
 	else{
 		tokenbuf = ch;
 		getsymt(ch);

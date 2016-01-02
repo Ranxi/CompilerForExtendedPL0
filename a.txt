@@ -12,7 +12,7 @@ var
 	x,y,i : integer;
 
 
-procedure swap(var a,b : integer);
+procedure swap(a,b : integer);
 	var tmp:integer;
 	begin
 		tmp := a;
@@ -48,11 +48,8 @@ begin
 	if n < 0
 		then n := -n;
 	if n > m
-		then begin
-			tmp := m;
-			m := n;
-			n := tmp
-		end;
+		then
+			swap(m,n);
 	write("The gcd is ",gcd(m,n));
 	tmp := gcd(m,n);
 
@@ -63,8 +60,13 @@ begin
 	write("Your char input is : ",ch1);
 	write(" ; ");
 	A[0] := ch1 ;
-	for i:=1 to 9 do
-		A[i] := A[i-1] + tmp;
+	read(x);
+	for i:=1 to x do
+		begin
+			A[i] := A[i-1] + tmp;
+			x := 12;
+			write(i);
+		end;
 
 	i := 0;
 	do
