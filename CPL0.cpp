@@ -352,6 +352,18 @@ void parameterdec(bool isprocedure, set<SYMTYPE> &fsys){
 				if (sym == IDF){
 					pgrpbase = paran;
 					while (sym == IDF){
+						for (int j = 0; j < paran; j++){		//检查参数是否重名
+							if (STABLE[tp].plink->paras[j].name == id){
+								reportError(1);					//参数重名
+								set<SYMTYPE> fsys2(fsys);
+								fsys2.insert(RPAREN);
+								recover(fsys2);
+								fsys2.erase(RPAREN);
+								fsys2.insert(SEMICOLON);
+								recover(fsys2);
+								return;
+							}
+						}
 						STABLE[tp].plink->paras[paran].name = id;
 						STABLE[tp].plink->paras[paran].isVar = true;
 						paran++;
@@ -420,6 +432,18 @@ void parameterdec(bool isprocedure, set<SYMTYPE> &fsys){
 			else{					//参数类型为变量类型（传值）
 				pgrpbase = paran;
 				while (sym == IDF){
+					for (int j = 0; j < paran; j++){		//检查参数是否重名
+						if (STABLE[tp].plink->paras[j].name == id){
+							reportError(1);					//参数重名
+							set<SYMTYPE> fsys2(fsys);
+							fsys2.insert(RPAREN);
+							recover(fsys2);
+							fsys2.erase(RPAREN);
+							fsys2.insert(SEMICOLON);
+							recover(fsys2);
+							return;
+						}
+					}
 					STABLE[tp].plink->paras[paran].name = id;
 					STABLE[tp].plink->paras[paran].isVar = false;
 					paran++;
@@ -1674,7 +1698,7 @@ int main(){
 #endif // !DEBUG
 	
 #ifdef DEBUG
-	in.open("h.txt");
+	in.open("a.txt");
 #endif // DEBUG
 
 	outimcode.open("imcode.txt");
