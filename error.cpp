@@ -115,6 +115,8 @@ void reportError(int errorcode){
 		errorinfo = "Unrecognized token！";break;
 	case 50:
 		errorinfo = "分程序的语句必须在复合语句块内，即应以begin开始"; break;
+	case 51:
+		errorinfo = "数组越界访问"; break;
 	default:
 		errorinfo = "Other Error !";
 	}

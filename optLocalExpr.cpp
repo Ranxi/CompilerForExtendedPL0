@@ -3,27 +3,26 @@ using namespace std;
 #define DAGSIZE 300
 
 extern SYMITEM STABLE[TABLENMAX];			// the symbol table
-extern int BlockIndex[LVMAX];				// 分程序索引表
-extern int BItop;							// 分程序索引表里的栈顶指针
 extern IMC CODE[CODEASIZE];					// 中间代码数组
-extern int lvl;								// current level
 
 DagNode Dag[DAGSIZE];						// DAG结构
 map<std::string, int> NodeTable;			// 结点表
 int ntabtop;
 
+// 划分基本块，此处考虑将 CALL 指令作为基本块的结束标志
 int blockDivide(int begin, int terminus){
 	int i = begin;
 	if (begin > terminus)
 		return -1;
 	while (i <= terminus){
-		if ((BEQ <= CODE[i].instrT && CODE[i].instrT <= ELB) || CODE[i].instrT == CALL || CODE[i].instrT==INI)
+		if ((BEQ <= CODE[i].instrT && CODE[i].instrT <= ELB) || CODE[i].instrT == CALL || CODE[i].instrT == INI )
 			return i;
 		i++;
 	}
 	return terminus;			//基本块的最后一条语句肯定是RET
 }
 
+// 搜索结点的第一个临时变量，为替换相同的临时变量做准备
 void searchFirstTmp(int index){
 	//如果结点本身就是临时变量，那么在新建结点的时候就已经初始化了firsttmp
 	if (Dag[index].firsttmp != "")
@@ -57,14 +56,54 @@ void replaceSrc(bool isNo1){
 		tmpNo = NodeTable.find(*operand)->second;		//此处依赖条件：临时变量没有跨基本块使用
 		if (!Dag[tmpNo].isleaf){
 			searchFirstTmp(tmpNo);
-			if (Dag[tmpNo].firsttmp != "" && Dag[tmpNo].firsttmp != "_")
+			if (Dag[tmpNo].firsttmp != "" && Dag[tmpNo].firsttmp != "_"){
+				NodeTable.erase(*operand);				//此处依赖条件：临时变量只会使用一次，使用完即扔
 				*operand = Dag[tmpNo].firsttmp;			//替换源操作数（用一个临时变量换另外一个临时变量）
+			}
 		}
 	}
 }
 
+// 判断临时变量是否已经被用过了，如果还没有被用过说明该临时变量可能会跨基本块使用（也有可能已经被用过但是被等价的临时变量替换了）
+// 所以目前的算法还不完善，但能保证是安全的。
+// 当然还有其他办法，如登记每个临时变量，在建DAG的过程中对被使用的临时变量作标记
+bool isused(string &name){
+	vector<int>::iterator fathers = Dag[ntabtop].fathers.begin();
+	while (fathers != Dag[ntabtop].fathers.end()){
+		if (Dag[*fathers].Op.op1 == name || Dag[*fathers].Op.op2 == name)
+			return true;
+		fathers++;
+	}
+	return false;
+}
+
+// 处理基本块出口处可能活跃的临时变量（也就是还没有用过的临时变量）
+void handleActiveTmp(int &ptr, vector<string>::iterator &itEql){
+	itEql = Dag[ntabtop].eqlVars.begin();
+	while (itEql != Dag[ntabtop].eqlVars.end()){
+		if ((*itEql).substr(0, 2) == "t_"){
+			if (NodeTable.find(*itEql) != NodeTable.end() &&!isused(*itEql)){
+				// 如果 NodeTable中找不到该临时变量了，说明已经被用过了
+				//isused(*itEql);
+				CODE[ptr].instrT = MOV;
+				CODE[ptr].op1 = Dag[ntabtop].Op.dest;
+				CODE[ptr].op2 = "";
+				CODE[ptr].dest = (*itEql);
+				string tmp = (*itEql);
+				itEql = Dag[ntabtop].eqlVars.erase(itEql);
+				ptr--;
+			}
+			else
+				itEql++;
+		}
+		else
+			itEql++;
+	}
+}
+
+// 对于等价的临时变量，用节点中的第一个临时变量（firsttmp）代替他们
 void genEqlImc(int &ptr, vector<string>::iterator &itEql){
-	bool hasprinttmp;
+	bool hasprinttmp = false;
 	if (Dag[ntabtop].Op.dest.substr(0, 2) == "t_")
 		hasprinttmp = true;
 	itEql = Dag[ntabtop].eqlVars.begin();
@@ -91,7 +130,7 @@ void genEqlImc(int &ptr, vector<string>::iterator &itEql){
 	}
 }
 
-
+// 从DAG图中导出代码
 void exportImc(int b, int t){
 	int ptr = t;
 	vector<string>::iterator itEql;
@@ -107,6 +146,7 @@ void exportImc(int b, int t){
 		switch (Dag[ntabtop].Op.instrT)
 		{
 		case NOP:
+			handleActiveTmp(ptr, itEql);
 			genEqlImc(ptr, itEql);		//此处考虑 MOV 5, var 的情况
 			ptr++;			//由于这里无需打印本结点的指令，所以ptr无需减一
 			break;
@@ -114,6 +154,7 @@ void exportImc(int b, int t){
 		case SUB:
 		case MUL:
 		case DIV:
+			handleActiveTmp(ptr, itEql);
 			//讨论第一个操作数
 			replaceSrc(true);
 			//讨论第二个操作数
@@ -126,25 +167,31 @@ void exportImc(int b, int t){
 		case INC:
 		case DEC:
 		case MNS:
+			handleActiveTmp(ptr, itEql);
 			genEqlImc(ptr, itEql);
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
 		case MOV:
+			handleActiveTmp(ptr, itEql);
 			replaceSrc(true);
 			genEqlImc(ptr, itEql);
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
 		case MOVA:
+			handleActiveTmp(ptr, itEql);
 			replaceSrc(true);
 			replaceSrc(false);
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
 		case LA:
+			//handleActiveTmp(ptr, itEql);	//注释原因见楼下
 			replaceSrc(false);			//此处只需考虑第二个操作数，即数组下标是否是临时变量，是否需要替换即可
-			genEqlImc(ptr, itEql);
+			//genEqlImc(ptr, itEql);	//此处注释原因：目标操作数必定是临时变量，因此如果有等价结点，完全由本结点代替即可。
+			//且由于这里的等价结点都是REF型变量，MOV指令会将值存到由临时变量指向的地址中而不是赋给该临时变量
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
 		case STEAX:
+			handleActiveTmp(ptr, itEql);
 			genEqlImc(ptr, itEql);
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
@@ -154,6 +201,7 @@ void exportImc(int b, int t){
 		case BGT:
 		case BLE:
 		case BLT:
+			handleActiveTmp(ptr, itEql);
 			replaceSrc(true);
 			replaceSrc(false);
 			CODE[ptr] = Dag[ntabtop].Op;
@@ -163,10 +211,11 @@ void exportImc(int b, int t){
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
 		case WRT:
-			replaceSrc(true);
+			replaceSrc(false);
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
 		case RED:
+			handleActiveTmp(ptr, itEql);
 			genEqlImc(ptr, itEql);
 			CODE[ptr] = Dag[ntabtop].Op;
 			break;
@@ -207,10 +256,10 @@ void createLeaf(string &name){
 	Dag[ntabtop].Op.instrT = NOP;
 	Dag[ntabtop].Op.dest = name;
 	Dag[ntabtop].isleaf = true;
-	NodeTable.insert(pair<string, int>(name, ntabtop));
+	NodeTable[name] = ntabtop ;
 }
 
-// 1.数组元素：MOVA, 需要把孩子结点含有目标数组的所有结点杀死; LA 可以继续加进图中
+// 1.数组元素：MOVA, 将数组结点更新; LA 可以继续加进图中
 // 2.写REF类变量：导出，重建
 // 3.为了降低导出、重建的频率，将INC,DEC,WRT,RED,PARA,PARAQ指令当做叶结点加入图中
 // 4.当发现公共表达式，如果修改后的结点编号比当前变量的结点编号小，那么就新建一个MOV结点，并修改结点表，使得导出顺序能遵循原有四元式顺序
@@ -275,22 +324,23 @@ void optLocalExpr(int begin,int terminus){
 						it2 = Dag[nodeNo2].fathers.begin();
 						while (it2 != Dag[nodeNo2].fathers.end()){
 							if (*it1 == *it2 && Dag[*it2].Op.instrT == curinstr->instrT){
-								if (NodeTable.find(curinstr->dest) != NodeTable.end() && NodeTable.find(curinstr->dest)->second > *it2){
+								if (NodeTable.find(Dag[*it2].Op.op1)->second != nodeNo1 || NodeTable.find(Dag[*it2].Op.op2)->second != nodeNo2)
+									break;
+								if (curinstr->dest.substr(0, 2) != "t_"){
+									//1.保持结点编号递增	2.防止提前将变量赋新值，因为原先的结点可能有表达式关联
 									Dag[ntabtop].Op.instrT = MOV;
 									Dag[ntabtop].Op.op1 = Dag[*it2].Op.dest;		//此处还可优化
 									Dag[ntabtop].Op.dest = curinstr->dest;
 									Dag[ntabtop].isleaf = false;
-									if (curinstr->dest.substr(0, 2) == "t_")
-										Dag[ntabtop].firsttmp = curinstr->dest;
-									else
-										Dag[ntabtop].firsttmp = "";
-									NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+									Dag[ntabtop].firsttmp = "";
+									NodeTable[curinstr->dest] = ntabtop;
 									Dag[nodeNo1].fathers.push_back(ntabtop);
 									ntabtop++;
 								}
 								else{
+									//依赖条件：临时变量只会赋值一次，即其结点编号固定
 									Dag[*it2].eqlVars.push_back(curinstr->dest);
-									NodeTable.insert(pair<string, int>(curinstr->dest, *it2));
+									NodeTable[curinstr->dest] = *it2;
 								}
 								findeql = true;
 								break;
@@ -309,7 +359,7 @@ void optLocalExpr(int begin,int terminus){
 						Dag[ntabtop].firsttmp = curinstr->dest;
 					else
 						Dag[ntabtop].firsttmp = "";
-					NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+					NodeTable[curinstr->dest] = ntabtop;
 					Dag[nodeNo1].fathers.push_back(ntabtop);
 					Dag[nodeNo2].fathers.push_back(ntabtop);
 					ntabtop++;
@@ -325,7 +375,7 @@ void optLocalExpr(int begin,int terminus){
 				}
 				Dag[ntabtop].Op = *curinstr;
 				Dag[ntabtop].isleaf = false;
-				NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+				NodeTable[curinstr->dest] = ntabtop;
 				ntabtop++;
 				break;
 			case MNS:
@@ -350,21 +400,36 @@ void optLocalExpr(int begin,int terminus){
 					vector<int>::iterator it1 = Dag[nodeNo1].fathers.begin();
 					while (it1 != Dag[nodeNo1].fathers.end()){
 						if (Dag[*it1].Op.instrT == MNS){
-							Dag[*it1].eqlVars.push_back(curinstr->dest);
-							NodeTable.insert(pair<string, int>(curinstr->dest, *it1));
+							if (curinstr->dest.substr(0, 2) != "t_"){
+								//1.保持结点编号递增	2.防止提前将变量赋新值，因为原先的结点可能有表达式关联
+								Dag[ntabtop].Op.instrT = MOV;
+								Dag[ntabtop].Op.op1 = Dag[*it1].Op.dest;		//此处还可优化
+								Dag[ntabtop].Op.dest = curinstr->dest;
+								Dag[ntabtop].isleaf = false;
+								Dag[ntabtop].firsttmp = "";
+								NodeTable[curinstr->dest] = ntabtop;
+								Dag[nodeNo1].fathers.push_back(ntabtop);
+								ntabtop++;
+							}
+							else{
+								//依赖条件：临时变量只会赋值一次，即其结点编号固定
+								Dag[*it1].eqlVars.push_back(curinstr->dest);
+								NodeTable[curinstr->dest] = *it1;
+							}
+							findeql = true;
 							break;
 						}
 						it1++;
 					}
 				}
-				else{
+				if(!findeql){
 					Dag[ntabtop].Op = *curinstr;
 					Dag[ntabtop].isleaf = false;
 					if (curinstr->dest.substr(0, 2) == "t_")
 						Dag[ntabtop].firsttmp = curinstr->dest;
 					else
 						Dag[ntabtop].firsttmp = "";
-					NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+					NodeTable[curinstr->dest] = ntabtop;
 					Dag[nodeNo1].fathers.push_back(ntabtop);
 					ntabtop++;
 				}
@@ -387,24 +452,22 @@ void optLocalExpr(int begin,int terminus){
 					nodeNo1 = ntabtop;
 					ntabtop++;
 				}
-				if (NodeTable.find(curinstr->dest) != NodeTable.end() && NodeTable.find(curinstr->dest)->second > nodeNo1){
-					//这里考虑的情况是如果变量的结点编号要变小，那么新建中间结点使其不变小，保持递增的原则
+				if (curinstr->dest.substr(0, 2) != "t_"){
+					//1.保持结点编号递增	2.防止提前将变量赋新值，因为原先的结点可能有表达式关联
 					Dag[ntabtop].Op = *curinstr;
 					Dag[ntabtop].isleaf = false;
-					if (curinstr->dest.substr(0, 2) == "t_")
-						Dag[ntabtop].firsttmp = curinstr->dest;
-					else
-						Dag[ntabtop].firsttmp = "";
-					NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+					Dag[ntabtop].firsttmp = "";
+					NodeTable[curinstr->dest] = ntabtop;
 					Dag[nodeNo1].fathers.push_back(ntabtop);
 					ntabtop++;
 				}
 				else{
+					//依赖条件：临时变量只会赋值一次，即其结点编号固定
 					if (Dag[nodeNo1].isleaf==true){
 						Dag[nodeNo1].Op.instrT = NOP;
 						Dag[nodeNo1].isleaf = false;
 					}
-					NodeTable.insert(pair<string, int>(curinstr->dest, nodeNo1));
+					NodeTable[curinstr->dest] = nodeNo1;
 					Dag[nodeNo1].eqlVars.push_back(curinstr->dest);
 				}
 				break;
@@ -445,7 +508,7 @@ void optLocalExpr(int begin,int terminus){
 				//因为此操作必然会改变数组，所以无需寻找是否有此类型的公共表达式，直接建新结点
 				Dag[ntabtop].Op = *curinstr;
 				Dag[ntabtop].isleaf = false;
-				NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+				NodeTable[curinstr->dest] = ntabtop;
 				Dag[nodeNo1].fathers.push_back(ntabtop);
 				Dag[nodeNo2].fathers.push_back(ntabtop);
 				Dag[nodeNo3].fathers.push_back(ntabtop);
@@ -484,7 +547,7 @@ void optLocalExpr(int begin,int terminus){
 							if (*it1 == *it2 && Dag[*it2].Op.instrT == curinstr->instrT){
 								//因为此处有依赖条件，目标操作数必定是新的临时变量，所以可以不考虑结点编号变小的问题
 								Dag[*it2].eqlVars.push_back(curinstr->dest);
-								NodeTable.insert(pair<string, int>(curinstr->dest, *it2));
+								NodeTable[curinstr->dest] = *it2;
 								findeql = true;
 								break;
 							}
@@ -499,7 +562,7 @@ void optLocalExpr(int begin,int terminus){
 					Dag[ntabtop].Op = *curinstr;
 					Dag[ntabtop].isleaf = false;
 					Dag[ntabtop].firsttmp = curinstr->dest;		//依赖条件：目标操作数必定是新的临时变量
-					NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+					NodeTable[curinstr->dest] = ntabtop;
 					Dag[nodeNo1].fathers.push_back(ntabtop);
 					Dag[nodeNo2].fathers.push_back(ntabtop);
 					ntabtop++;
@@ -514,7 +577,7 @@ void optLocalExpr(int begin,int terminus){
 				}
 				Dag[ntabtop].Op = *curinstr;
 				Dag[ntabtop].isleaf = false;
-				NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+				NodeTable[curinstr->dest] = ntabtop;
 				ntabtop++;
 				break;
 			case BNE:
@@ -544,7 +607,7 @@ void optLocalExpr(int begin,int terminus){
 				}
 				Dag[ntabtop].Op = *curinstr;
 				Dag[ntabtop].isleaf = false;
-				//NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+				//NodeTable[curinstr->dest] = ntabtop;
 				ntabtop++;
 				break;
 			case WRT:
@@ -578,7 +641,7 @@ void optLocalExpr(int begin,int terminus){
 				}
 				Dag[ntabtop].Op = *curinstr;
 				Dag[ntabtop].isleaf = false;
-				NodeTable.insert(pair<string, int>(curinstr->dest, ntabtop));
+				NodeTable[curinstr->dest] = ntabtop;
 				ntabtop++;
 				break;
 			default:		//JMP, ELB, CALL, INI, RET, 

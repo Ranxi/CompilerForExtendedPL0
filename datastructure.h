@@ -21,7 +21,7 @@
 #define RSVWBEGININDEX	21
 #define RSVWENDINDEX	40
 #define PARANUMMAX		10		//参数个数上限
-#define STRCONSTMAX		30		//字符串常量数量上限
+#define STRCONSTMAX		50		//字符串常量数量上限
 
 
 enum SYMTYPE
@@ -51,6 +51,11 @@ enum INSTRTYPE
 	NOP = 0, ADD , SUB, MUL, DIV, INC, DEC, MNS, MOV, MOVA, LA, STEAX,
 	BEQ, BNE, BGE, BGT, BLE, BLT, JMP, ELB,
 	PARA, PARAQ, CALL, INI, RET, WRT, RED
+};
+
+enum GLOBALREG
+{
+	EBX = 0, EDI, ESI
 };
 
 typedef struct arrayinfo{

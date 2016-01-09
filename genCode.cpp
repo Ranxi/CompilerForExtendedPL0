@@ -195,29 +195,6 @@ void loadOp1ToEDX(int i1){
 	}
 }
 
-void movEDXtoTarget(int idest){
-	//把edx的值赋给目标变量
-	if (STABLE[idest].type == CHARREF || STABLE[idest].type == NUMREF){
-		//全局变量中不可能有引用变量
-		if (STABLE[idest].level == lvl)
-			outasmtmp << "\tmov\teax,[ebp-" << STABLE[idest].offset << "]" << endl;
-		else{
-			loadexternVar(idest);
-			outasmtmp << "\tmov\teax,[eax-8-" << STABLE[idest].offset << "]" << endl;
-		}
-		outasmtmp << "\tmov\tdword ptr [eax],edx" << endl;
-	}
-	else{
-		if(STABLE[idest].level == 0 && idest <= globalvartop)
-			outasmtmp << "\tmov\tdword ptr[" << STABLE[idest].name << "],edx" << endl;
-		else if (STABLE[idest].level == lvl)
-			outasmtmp << "\tmov\tdword ptr [ebp-" << STABLE[idest].offset << "],edx" << endl;
-		else{
-			loadexternVar(idest);
-			outasmtmp << "\tmov\tdword ptr [eax-8-" << STABLE[idest].offset << "],edx" << endl;
-		}
-	}
-}
 
 void manipEDXwithOp2(int i2,string manip){
 	if (STABLE[i2].type == CHARCONST || STABLE[i2].type == NUMCONST)
@@ -241,6 +218,30 @@ void manipEDXwithOp2(int i2,string manip){
 				outasmtmp << "\tmov\teax,[eax-8-" << STABLE[i2].offset << "]" << endl;
 			}
 			outasmtmp << "\t" << manip << "\tedx,[eax]" << endl;
+		}
+	}
+}
+
+void movEDXtoTarget(int idest){
+	//把edx的值赋给目标变量
+	if (STABLE[idest].type == CHARREF || STABLE[idest].type == NUMREF){
+		//全局变量中不可能有引用变量
+		if (STABLE[idest].level == lvl)
+			outasmtmp << "\tmov\teax,[ebp-" << STABLE[idest].offset << "]" << endl;
+		else{
+			loadexternVar(idest);
+			outasmtmp << "\tmov\teax,[eax-8-" << STABLE[idest].offset << "]" << endl;
+		}
+		outasmtmp << "\tmov\tdword ptr [eax],edx" << endl;
+	}
+	else{
+		if(STABLE[idest].level == 0 && idest <= globalvartop)
+			outasmtmp << "\tmov\tdword ptr[" << STABLE[idest].name << "],edx" << endl;
+		else if (STABLE[idest].level == lvl)
+			outasmtmp << "\tmov\tdword ptr [ebp-" << STABLE[idest].offset << "],edx" << endl;
+		else{
+			loadexternVar(idest);
+			outasmtmp << "\tmov\tdword ptr [eax-8-" << STABLE[idest].offset << "],edx" << endl;
 		}
 	}
 }
@@ -692,8 +693,8 @@ void genAsm(int cxbg,int cxend){
 			outasmtmp << "\tmov\tebp,esp" << endl;
 			outasmtmp << "\tsub\tesp," << (STABLE[idest].plink->varsize) << endl;
 			outasmtmp << "\tpush\tebx" << endl;
-			outasmtmp << "\tpush\tesi" << endl;
 			outasmtmp << "\tpush\tedi" << endl;
+			outasmtmp << "\tpush\tesi" << endl;
 			break;
 		case RET:
 			if (BItop > 0){
@@ -702,8 +703,8 @@ void genAsm(int cxbg,int cxend){
 					outasmtmp << "\tmov\teax,[ebp-" << STABLE[i1].offset << "]" << endl;
 				}
 			}
-			outasmtmp << "\tpop\tedi" << endl;
 			outasmtmp << "\tpop\tesi" << endl;
+			outasmtmp << "\tpop\tedi" << endl;
 			outasmtmp << "\tpop\tebx" << endl;
 			outasmtmp << "\tmov\tesp,ebp" << endl;
 			outasmtmp << "\tpop\tebp" << endl;

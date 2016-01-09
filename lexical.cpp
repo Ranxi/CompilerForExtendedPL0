@@ -158,11 +158,15 @@ void getsym(){
 			else{
 				sym = NUL;
 				reportError(49);
+				getch();
+				getch();
 			}
 		}
 		else{
 			sym = NUL;
 			reportError(49);
+			getch();
+			getch();
 		}
 	}
 	else if (ch == '\"'){
@@ -179,6 +183,7 @@ void getsym(){
 		else{
 			sym = NUL;
 			reportError(49);
+			getch();
 		}
 	}
 	//else if (ch == '\/'){

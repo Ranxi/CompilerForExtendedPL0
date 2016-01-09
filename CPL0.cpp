@@ -26,6 +26,7 @@ SYMITEM STABLE[TABLENMAX];			// the symbol table
 int hashtable[TABLENMAX];			// the hash table for symbol table
 int BlockIndex[LVMAX];				// 分程序索引表
 int BItop;							// 分程序索引表里的栈顶指针
+int mainindex;						// Hash(_main)的值
 int globalvartop;					// 所有全局变量在符号表中最大的下标
 
 IMC CODE[CODEASIZE];				// 中间代码数组
@@ -51,7 +52,7 @@ void closefiles(){
 	outfinalcode.close();
 }
 //hash表，便于查询符号表
-int Hash(string name){
+int Hash(string &name){
 	int unsigned t;
 	int len = name.length();
 	int j = 0;
@@ -74,7 +75,7 @@ void registe(SYMITEM &item){
 	}
 	STABLE[tp] = item;					//bit copy
 	int index = Hash(item.name);
-	if (hashtable[index] != 0){
+	if (hashtable[index] != 0 || index==mainindex){
 		STABLE[tp].link = hashtable[index];
 		hashtable[index] = tp;
 	}
@@ -344,6 +345,7 @@ void parameterdec(bool isprocedure, set<SYMTYPE> &fsys){
 	int paran = 0;
 	int offset = -12;					//EBP 与 第一个参数之间隔了返回地址和SL
 	int pgrpbase = 0;
+	STABLE[tp].plink->paranum = 0;
 	if (sym == LPAREN){
 		getsym();
 		while (sym == VARSYM || sym == IDF){
@@ -495,7 +497,7 @@ void parameterdec(bool isprocedure, set<SYMTYPE> &fsys){
 			}
 		}
 		//把参数填入符号表
-		int pftp = tp;			//记录下正在处理的过程或函数在符号表中的位置
+		int pftp = tp;			//记录下正在处理的分程序在符号表中的位置
 		STABLE[tp].plink->paranum = paran;
 		for (int j = 0; j < paran; j++){
 			SYMITEM apara;
@@ -778,8 +780,14 @@ IDTYPE factor(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 							recover(fsys);
 							return (IDTYPE)0;
 						}
-						indexResult = opname;
-
+						int j = locate(opname);
+						if(STABLE[j].type == NUMCONST){
+							if (STABLE[j].constv < 0 || STABLE[j].constv >= STABLE[i].alink->size){
+								reportError(51);
+								recover(fsys);
+							}
+						}
+						indexResult = opname;						
 						//在符号表中注册临时变量
 						tmpindex++;
 						SYMITEM atemp;
@@ -951,7 +959,7 @@ IDTYPE expression(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 					opname = atemp.name;
 					atemp.type = NUMCONST;
 					atemp.level = lvl;
-					atemp.constv = digits;
+					atemp.constv = -digits;
 					atemp.alink = NULL;
 					atemp.plink = NULL;
 					atemp.link = -1;
@@ -1012,7 +1020,7 @@ IDTYPE expression(int &tmpindex,string &opname,set<SYMTYPE> &fsys){
 bool exprTypecheck(IDTYPE dest, IDTYPE src){
 	if ((dest == NUMVAR || dest == NUMREF) && (CHARVAR <= src && src <= NUMREF))
 		return true;
-	else if ((dest == CHARVAR || dest == CHARREF) && (CHARVAR <= src && src <= NUMREF))
+	else if ((dest == CHARVAR || dest == CHARREF) && (CHARVAR <= src && src <= CHARREF))
 		return true;
 	else
 		return false;
@@ -1032,7 +1040,7 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 			if (!exprTypecheck(STABLE[i].plink->retvaluet, exprType))
 				reportError(42);			//赋值语句等号两边类型不匹配
 			else{
-				if ((ADD <= CODE[cx - 1].instrT && CODE[cx - 1].instrT <= DIV) || CODE[cx - 1].instrT == STEAX){
+				/*if ((ADD <= CODE[cx - 1].instrT && CODE[cx - 1].instrT <= DIV) || CODE[cx - 1].instrT == STEAX){
 					if (opname.substr(0, 2) == "t_" && opname == CODE[cx - 1].dest){
 						CODE[cx - 1].dest = STABLE[i].name + "_retv";
 						curOffset -= 4;
@@ -1040,7 +1048,7 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 					else
 						genImc(MOV, opname, "", STABLE[i].name + "_retv");
 				}
-				else
+				else*/
 					genImc(MOV, opname, "", STABLE[i].name + "_retv");
 			}
 		}
@@ -1062,10 +1070,16 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 			if(NUMVAR <= indexType && indexType <= NUMREF){
 				//
 			}
+			
 			else {
 				reportError(43);			//数组下标类型只能是整型
 				recover(fsys);
 				return;
+			}
+			int j = locate(opname);
+			if (STABLE[j].type == NUMCONST){
+				if (STABLE[j].constv < 0 || STABLE[j].constv >= STABLE[i].alink->size)
+					reportError(51);
 			}
 			indexResult = opname;
 			if (sym != RSQBSYM){
@@ -1105,7 +1119,7 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 			if(!exprTypecheck(idft,exprType))
 				reportError(42);
 			else{
-				if ((ADD <= CODE[cx - 1].instrT && CODE[cx - 1].instrT <= DIV) || CODE[cx - 1].instrT == STEAX){
+				/*if ((ADD <= CODE[cx - 1].instrT && CODE[cx - 1].instrT <= DIV) || CODE[cx - 1].instrT == STEAX){
 					if (opname.substr(0, 2) == "t_" && opname == CODE[cx - 1].dest){
 						CODE[cx - 1].dest = STABLE[i].name ;
 						curOffset -= 4;
@@ -1113,7 +1127,7 @@ void assignment(int &tmpindex,int i, set<SYMTYPE> &fsys){
 					else
 						genImc(MOV, opname, "", STABLE[i].name);
 				}
-				else
+				else*/
 					genImc(MOV,opname,"",STABLE[i].name);
 			}
 		}
@@ -1390,10 +1404,10 @@ WHILE2:	if (sym == WHILESYM){
 						set<SYMTYPE> fsys3(fsys);
 						fsys3.insert(DOSYM);
 						expression(tmpindex, opname, fsys3);
-						//if(opname.substr(0,2) != "t_"){		//如果表达式结果变量不是临时变量，将用临时变量存储
+						if(opname.substr(0,2) != "t_"){		//如果表达式结果变量不是临时变量，将用临时变量存储
 							tmpindex ++;
 							SYMITEM atemp;
-							atemp.name = "T_" + to_string(tmpindex);
+							atemp.name = "t_" + to_string(tmpindex);
 							atemp.type = NUMVAR;
 							atemp.level = lvl;
 							atemp.offset = curOffset;
@@ -1404,7 +1418,7 @@ WHILE2:	if (sym == WHILESYM){
 							curOffset += 4;
 							genImc(MOV,opname,"",atemp.name);
 							opname = atemp.name;
-						//}
+						}
 						string lbname = "LABEL" + to_string(labelNo);
 						genImc(ELB, "", "", lbname);			//生成LABEL
 						labelNo++;
@@ -1591,13 +1605,13 @@ void Block(int btp,int offset, set<SYMTYPE> &fsys){
 	statement(tmpindex,fsys2);		//statement( [semicolon,endsym]+fsys);
 	STABLE[btp].plink->varsize = curOffset - 4;		//这时的curOffset比实际需要的多4
 	//回填申请空间, 计算方法应为 offset + tmpindex*4 + display区等等，实际上就等于
-	genImc(RET, "", "", "");		
+	genImc(RET, "", "", "");
 	cxsted = cx;
 	fsys2.clear();
 	test(fsys, fsys2, 39);
 
 #ifdef DAGOPT
-	optLocalExpr(cxbg, cxbg + 1);		//这里的区间是闭区间，而由于有楼下的原因，所以cxbg+2无需处理
+	//optLocalExpr(cxbg, cxbg + 1);		//这里的区间是闭区间，而由于有楼下的原因，所以cxbg+2无需处理（就两条指令，无需建DAG图）
 	optLocalExpr(cxstbg + 1, cxsted - 1);	//这里之所以 + 1,原因同楼下
 #endif
 
@@ -1702,7 +1716,7 @@ int main(){
 #endif // DEBUG
 
 	outimcode.open("imcode.txt");
-	outfinalcode.open("D:\\masm32\\Hello\\PL0code.asm");
+	outfinalcode.open("D:\\masm32\\AAA\\PL0code.asm");
 	outasmtmp.open("temp.txt");
 
 	initial();
@@ -1716,7 +1730,9 @@ int main(){
 	amain.plink = new pfinfo;
 	amain.alink = NULL;
 	amain.link = -1;
+	mainindex = -1;
 	registe(amain);
+	mainindex = Hash(amain.name);
 	BlockIndex[BItop] = 0;			//初始化分程序索引表
 	set<SYMTYPE> fsys(STMTFIRST);						//生成参数
 	fsys.insert(DECLARAFIRST.begin(),DECLARAFIRST.end());			//block( 0,0,[period]+declbegsys+statbegsys );
