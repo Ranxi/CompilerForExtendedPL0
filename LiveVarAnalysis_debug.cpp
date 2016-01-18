@@ -1,14 +1,14 @@
-#include "datastructure.h"
+ï»¿#include "datastructure.h"
 using namespace std;
 #define BLOCKNUMUPPER		256
 
 extern SYMITEM STABLE[TABLENMAX];			// the symbol table
-extern IMC CODE[CODEASIZE];					// ÖĞ¼ä´úÂëÊı×é
-int blockNo;								// »ù±¾¿é±êºÅ´Ó 1 ¿ªÊ¼
-int blocktail[BLOCKNUMUPPER];				// ´ËÊı×éÓÃÀ´¼ÇÂ¼»ù±¾¿éÄ©Î²Ìø×ªÖ¸ÁîµÄÎ»ÖÃ
-int Successor[BLOCKNUMUPPER][2];			// ´æ´¢»ù±¾¿éµÄºó¼Ì»ù±¾¿éºÅ£¬ÖÁ¶àÓĞÁ½¸öºó¼Ì»ù±¾¿é
+extern IMC CODE[CODEASIZE];					// ä¸­é—´ä»£ç æ•°ç»„
+int blockNo;								// åŸºæœ¬å—æ ‡å·ä» 1 å¼€å§‹
+int blocktail[BLOCKNUMUPPER];				// æ­¤æ•°ç»„ç”¨æ¥è®°å½•åŸºæœ¬å—æœ«å°¾è·³è½¬æŒ‡ä»¤çš„ä½ç½®
+int Successor[BLOCKNUMUPPER][2];			// å­˜å‚¨åŸºæœ¬å—çš„åç»§åŸºæœ¬å—å·ï¼Œè‡³å¤šæœ‰ä¸¤ä¸ªåç»§åŸºæœ¬å—
 bool evolved;
-map<string, int> LabelTable;				// ±êÇ©ÁĞ±í
+map<string, int> LabelTable;				// æ ‡ç­¾åˆ—è¡¨
 
 set<string> useB[BLOCKNUMUPPER];
 set<string> defB[BLOCKNUMUPPER];
@@ -16,25 +16,25 @@ set<string> inB[BLOCKNUMUPPER];
 set<string> outB[BLOCKNUMUPPER];
 
 
-// ÅĞ¶ÏÊÇ·ñ¿ÉÒÔ¼ÓÈëµÚ i ¸ö»ù±¾¿éµÄ use[B]
+// åˆ¤æ–­æ˜¯å¦å¯ä»¥åŠ å…¥ç¬¬ i ä¸ªåŸºæœ¬å—çš„ use[B]
 void judgeUse(int i, string &name){
-	if (name.substr(0, 2) == "t_" || name.substr(0, 2) == "C_")			// ²»¿¼ÂÇÎªÁÙÊ±±äÁ¿·ÖÅäÈ«¾Ö¼Ä´æÆ÷
-		return;		//ÂúÂúµÄÆçÊÓ
+	if (name.substr(0, 2) == "t_" || name.substr(0, 2) == "C_")			// ä¸è€ƒè™‘ä¸ºä¸´æ—¶å˜é‡åˆ†é…å…¨å±€å¯„å­˜å™¨
+		return;		//æ»¡æ»¡çš„æ­§è§†
 	if (defB[blockNo].count(name) <= 0)
 		useB[blockNo].insert(name);
 }
-// ÅĞ¶ÏÊÇ·ñ¿ÉÒÔ¼ÓÈëµÚ i ¸ö»ù±¾¿éµÄ def[B]
+// åˆ¤æ–­æ˜¯å¦å¯ä»¥åŠ å…¥ç¬¬ i ä¸ªåŸºæœ¬å—çš„ def[B]
 void judgeDef(int i, string &name){
-	if (name.substr(0, 2) == "t_" || name.substr(0, 2)=="C_")			// ²»¿¼ÂÇÎªÁÙÊ±±äÁ¿·ÖÅäÈ«¾Ö¼Ä´æÆ÷
-		return;		//ÂúÂúµÄÆçÊÓ
+	if (name.substr(0, 2) == "t_" || name.substr(0, 2)=="C_")			// ä¸è€ƒè™‘ä¸ºä¸´æ—¶å˜é‡åˆ†é…å…¨å±€å¯„å­˜å™¨
+		return;		//æ»¡æ»¡çš„æ­§è§†
 	if (useB[blockNo].count(name) <= 0)
 		defB[blockNo].insert(name);
 }
 
-//	±¾º¯ÊıµÄ×÷ÓÃ£º
-//	1.»®·Ö»ù±¾¿é, CALL Ö¸Áî²»¿¼ÂÇÎª»ù±¾¿é½áÊø±êÖ¾
-//	2.×¼±¸ºÃ¸÷»ù±¾¿éµÄ use[B] Óë def[B]
-//	3.¼ÇÂ¼ÏÂ¸÷¸ö±êÇ©ËùÔÚµÄ»ù±¾¿é±àºÅ
+//	æœ¬å‡½æ•°çš„ä½œç”¨ï¼š
+//	1.åˆ’åˆ†åŸºæœ¬å—, CALL æŒ‡ä»¤ä¸è€ƒè™‘ä¸ºåŸºæœ¬å—ç»“æŸæ ‡å¿—
+//	2.å‡†å¤‡å¥½å„åŸºæœ¬å—çš„ use[B] ä¸ def[B]
+//	3.è®°å½•ä¸‹å„ä¸ªæ ‡ç­¾æ‰€åœ¨çš„åŸºæœ¬å—ç¼–å·
 int blockDivide2(int begin, int terminus){
 	int i = begin;
 	if (begin > terminus)
@@ -43,7 +43,7 @@ int blockDivide2(int begin, int terminus){
 		printf("Sorry, Too many basic blocks, you have to adjust the upper limit!");
 		exit(0);
 	}
-	while (CODE[i].instrT == ELB || CODE[i].instrT == NOP){			//´Ë´¦Ã»ÓĞ¼Ó i <= terminus µÄÌõ¼şÊÇÒòÎª³ÌĞò¿é×îºóÒ»ÌõÒ»¶¨ÊÇRET
+	while (CODE[i].instrT == ELB || CODE[i].instrT == NOP){			//æ­¤å¤„æ²¡æœ‰åŠ  i <= terminus çš„æ¡ä»¶æ˜¯å› ä¸ºç¨‹åºå—æœ€åä¸€æ¡ä¸€å®šæ˜¯RET
 		if (CODE[i].instrT == ELB)
 			LabelTable[CODE[i].dest] = blockNo;
 		i++;
@@ -57,52 +57,52 @@ int blockDivide2(int begin, int terminus){
 		case SUB:
 		case MUL:
 		case DIV:
-			//ÌÖÂÛµÚÒ»¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸€ä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op1);
-			//ÌÖÂÛµÚ¶ş¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬äºŒä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op2);
-			//ÌÖÂÛµÚÈı¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸‰ä¸ªæ“ä½œæ•°
 			judgeDef(i, CODE[i].dest);
 			break;
 		case INC:
 		case DEC:
-			//ÌÖÂÛµÚÒ»¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸€ä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op1);
-			// a = a + 1 ÕâÖÖ¾ä×Ó¿Ï¶¨ÊÇÏÈÊ¹ÓÃÔÙ¶¨Òå
+			// a = a + 1 è¿™ç§å¥å­è‚¯å®šæ˜¯å…ˆä½¿ç”¨å†å®šä¹‰
 			break;
 		case MNS:
 		case MOV:
-			//ÌÖÂÛµÚÒ»¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸€ä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op1);
-			//ÌÖÂÛµÚÈı¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸‰ä¸ªæ“ä½œæ•°
 			judgeDef(i, CODE[i].dest);
 			break;
 		case MOVA:
-			//ÌÖÂÛµÚÒ»¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸€ä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op1);
-			//ÌÖÂÛµÚ¶ş¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬äºŒä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op2);
 			break;
 		case LA:
-			//µÚÒ»¸ö²Ù×÷ÊıÎªÊı×é
-			//ÌÖÂÛµÚ¶ş¸ö²Ù×÷Êı
+			//ç¬¬ä¸€ä¸ªæ“ä½œæ•°ä¸ºæ•°ç»„
+			//è®¨è®ºç¬¬äºŒä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op2);
-			//ÌÖÂÛµÚÈı¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸‰ä¸ªæ“ä½œæ•°
 			judgeDef(i, CODE[i].dest);
 			break;
-		case STEAX:		//ÒÀÀµÌõ¼ş£ºÄ¿±ê²Ù×÷ÊıÖ»¿ÉÄÜÊÇÁÙÊ±±äÁ¿
+		case STEAX:		//ä¾èµ–æ¡ä»¶ï¼šç›®æ ‡æ“ä½œæ•°åªå¯èƒ½æ˜¯ä¸´æ—¶å˜é‡
 			break;
 		
-		/************************»ù±¾¿é½áÎ²ÅĞ¶Ï**************************/
+		/************************åŸºæœ¬å—ç»“å°¾åˆ¤æ–­**************************/
 		case BNE:
 		case BEQ:
 		case BGE:
 		case BGT:
 		case BLE:
 		case BLT:
-			//ÌÖÂÛµÚÒ»¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸€ä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op1);
-			//ÌÖÂÛµÚ¶ş¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬äºŒä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op2);
 			blocktail[blockNo++] = i;
 			break;
@@ -113,10 +113,10 @@ int blockDivide2(int begin, int terminus){
 			if (i > begin &&((BEQ <= CODE[i - 1].instrT && CODE[i-1].instrT <= JMP) || CODE[i-1].instrT == CALL)){
 			}
 			else{
-				blocktail[blockNo] = i - 1;		// ELB Ç°ÃæµÄÓï¾ä¿ÉÄÜÊÇÈÎÒâ¼ÆËãÀàĞÍÓï¾ä
+				blocktail[blockNo] = i - 1;		// ELB å‰é¢çš„è¯­å¥å¯èƒ½æ˜¯ä»»æ„è®¡ç®—ç±»å‹è¯­å¥
 				blockNo++;
 			}
-			while (CODE[i].instrT == ELB || CODE[i].instrT == NOP){			//´Ë´¦Ã»ÓĞ¼Ó i <= terminus µÄÌõ¼şÊÇÒòÎª³ÌĞò¿é×îºóÒ»ÌõÒ»¶¨ÊÇRET
+			while (CODE[i].instrT == ELB || CODE[i].instrT == NOP){			//æ­¤å¤„æ²¡æœ‰åŠ  i <= terminus çš„æ¡ä»¶æ˜¯å› ä¸ºç¨‹åºå—æœ€åä¸€æ¡ä¸€å®šæ˜¯RET
 				if (CODE[i].instrT == ELB)
 					LabelTable[CODE[i].dest] = blockNo;
 				i++;
@@ -125,11 +125,11 @@ int blockDivide2(int begin, int terminus){
 			LabelTable[CODE[i].dest] = blockNo;
 			break;
 
-		/************************»ù±¾¿é½áÎ²ÅĞ¶Ï**************************/
+		/************************åŸºæœ¬å—ç»“å°¾åˆ¤æ–­**************************/
 
 		case PARA:
 		case PARAQ:
-			//ÌÖÂÛµÚÒ»¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸€ä¸ªæ“ä½œæ•°
 			judgeUse(i, CODE[i].op1);
 			break;
 		case CALL:
@@ -140,20 +140,20 @@ int blockDivide2(int begin, int terminus){
 			blocktail[blockNo++] = i;
 			return i;
 		case WRT:
-			if (CODE[i].op1 == "")			//ÌÖÂÛµÚ¶ş¸ö²Ù×÷Êı
+			if (CODE[i].op1 == "")			//è®¨è®ºç¬¬äºŒä¸ªæ“ä½œæ•°
 				judgeUse(i, CODE[i].op2);
 			break;
 		case RED:
-			//ÌÖÂÛµÚÈı¸ö²Ù×÷Êı
+			//è®¨è®ºç¬¬ä¸‰ä¸ªæ“ä½œæ•°
 			judgeDef(i, CODE[i].dest);
 			break;
-		default:		//INI, µ«ÊÇÈç¹û²»³öÒâÍâ£¬ÕâÀï²»»á³öÏÖINI
+		default:		//INI, ä½†æ˜¯å¦‚æœä¸å‡ºæ„å¤–ï¼Œè¿™é‡Œä¸ä¼šå‡ºç°INI
 			break;
 		}
 		i++;
 	}
 	blocktail[blockNo] = i;
-	return terminus;			//»ù±¾¿éµÄ×îºóÒ»ÌõÓï¾ä¿Ï¶¨ÊÇRET
+	return terminus;			//åŸºæœ¬å—çš„æœ€åä¸€æ¡è¯­å¥è‚¯å®šæ˜¯RET
 }
 
 void setSuccessor(){
@@ -176,7 +176,7 @@ void setSuccessor(){
 		}
 		else if (CODE[ptr].instrT == RET){
 			Successor[i][0] = 0;
-			//·Ö³ÌĞòÄÚ×îºóÒ»¸ö»ù±¾¿é£¬ºó¼ÌÎªBexit
+			//åˆ†ç¨‹åºå†…æœ€åä¸€ä¸ªåŸºæœ¬å—ï¼Œåç»§ä¸ºBexit
 		}
 		else
 			Successor[i][0] = i + 1;
@@ -188,7 +188,7 @@ void computeOutIn(){
 	int i;
 	set<string> tmpIn ;
 	set<string>::iterator defit;
-	for (i = blockNo ; i > 0; i--){		// ÒÀÀµÌõ¼ş£º×îºóÒ»¸ö»ù±¾¿éµÄ×îºóÒ»ÌõÓï¾äÒ»¶¨ÊÇRET£¬Òò´ËÎŞºó¼Ì
+	for (i = blockNo ; i > 0; i--){		// ä¾èµ–æ¡ä»¶ï¼šæœ€åä¸€ä¸ªåŸºæœ¬å—çš„æœ€åä¸€æ¡è¯­å¥ä¸€å®šæ˜¯RETï¼Œå› æ­¤æ— åç»§
 		outB[i].insert(inB[Successor[i][0]].begin(), inB[Successor[i][0]].end());
 		if (Successor[i][0] > 0)
 			outB[i].insert(inB[Successor[i][1]].begin(), inB[Successor[i][1]].end());
@@ -212,13 +212,13 @@ void computeOutIn(){
 }
 
 void globalRegAlloc(int begin, int terminus){
-	//»®·Ö»ù±¾¿é£¬¼ÆËã use[B] Óë def[B]
+	//åˆ’åˆ†åŸºæœ¬å—ï¼Œè®¡ç®— use[B] ä¸ def[B]
 	blockNo = 1;
 	blockDivide2(begin, terminus);
 	blockNo--;
-	//ÌîºÃËùÓĞ»ù±¾¿éµÄºó¼Ì»ù±¾¿é±àºÅ
+	//å¡«å¥½æ‰€æœ‰åŸºæœ¬å—çš„åç»§åŸºæœ¬å—ç¼–å·
 	setSuccessor();
-	//¼ÆËã out[B] Óë in[B]
+	//è®¡ç®— out[B] ä¸ in[B]
 	while (true){
 		computeOutIn();
 		if (evolved == false)
@@ -249,7 +249,7 @@ void globalRegAlloc(int begin, int terminus){
 		std::cout << endl;
 	}
 	LabelTable.clear();
-	//Í³¼ÆĞèÒª·ÖÅäÈ«¾Ö¼Ä´æÆ÷µÄ±äÁ¿
+	//ç»Ÿè®¡éœ€è¦åˆ†é…å…¨å±€å¯„å­˜å™¨çš„å˜é‡
 
 	/*map<string ,int > acrossBlkVar;
 	set<string>::iterator it;
@@ -271,6 +271,6 @@ void globalRegAlloc(int begin, int terminus){
 		abvIt++;
 	}
 	int m = canditates.size();*/
-	// »­³åÍ»Í¼
-	// Í¼×ÅÉ«Ëã·¨·ÖÅä¼Ä´æÆ÷
+	// ç”»å†²çªå›¾
+	// å›¾ç€è‰²ç®—æ³•åˆ†é…å¯„å­˜å™¨
 }
